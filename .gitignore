@@ -1,0 +1,32 @@
+# Xcode
+build/
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xccheckout
+*.xcuserdatad
+
+# XcodeGen generated project (regenerated in CI)
+VideoParse.xcodeproj/
+
+# macOS
+.DS_Store
+
+# SwiftPM
+.swiftpm/
+.build/
+Packages/
+Package.resolved
+
+# Secrets
+.env
+*.jks
+*.p12
+*.mobileprovision

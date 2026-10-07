@@ -1,0 +1,78 @@
+name: Build iOS IPA (Unsigned)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Archive (unsigned)
+        run: |
+          set -e
+          xcodebuild \
+            -project VideoParse.xcodeproj \
+            -scheme VideoParse \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/VideoParse.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean archive
+
+      - name: Package unsigned IPA
+        run: |
+          set -e
+          APP_PATH="$RUNNER_TEMP/VideoParse.xcarchive/Products/Applications/VideoParse.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Archive app bundle not found at $APP_PATH"
+            ls -R "$RUNNER_TEMP/VideoParse.xcarchive/Products" || true
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa"
+          zip -qry "$RUNNER_TEMP/VideoParse-unsigned.ipa" Payload
+          echo "IPA built at $RUNNER_TEMP/VideoParse-unsigned.ipa"
+          ls -lh "$RUNNER_TEMP/VideoParse-unsigned.ipa"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoParse-unsigned-ipa
+          path: ${{ runner.temp }}/VideoParse-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ${{ runner.temp }}/VideoParse.xcarchive
+          if-no-files-found: ignore
+          retention-days: 3
