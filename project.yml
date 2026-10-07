@@ -1,5 +1,8 @@
 name: VideoParse
 options:
+  # GitHub Actions (macos-14) 使用 Xcode 15.4，默认 xcode16_0 格式无法被读取，需生成兼容格式
+  projectFormat: xcode15_0
+  xcodeVersion: "15.4"
   bundleIdPrefix: com.videoparse
   deploymentTarget:
     iOS: "15.0"
@@ -37,3 +40,17 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
         SUPPORTS_MACCATALYST: NO
+
+schemes:
+  VideoParse:
+    build:
+      targets:
+        VideoParse: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
