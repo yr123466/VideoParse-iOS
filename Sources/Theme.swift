@@ -109,17 +109,16 @@ struct CardBox<Content: View>: View {
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                AnyShapeStyle(
-                    fill ?? AnyShapeStyle(ZStack {
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .fill(Theme.glassCardMaterial)
-                        RoundedRectangle(cornerRadius: radius, style: .continuous)
-                            .fill(LinearGradient(
-                                colors: [Color.white.opacity(0.14), Color.white.opacity(0.04)],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            ))
-                    })
-                )
+                ZStack {
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .fill(fill ?? Theme.glassCardMaterial)
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .fill(LinearGradient(
+                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.04)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .opacity(fill == nil ? 0.5 : 0)
+                }
             )
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(
