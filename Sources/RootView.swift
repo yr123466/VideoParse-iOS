@@ -79,62 +79,46 @@ struct RootView: View {
     }
 
     private var topBar: some View {
-        ZStack(alignment: .leading) {
+        ZStack(alignment: .center) {
             ZStack {
                 Capsule()
-                    .fill(Theme.surface)
-                    .overlay(Capsule().stroke(Theme.stroke.opacity(0.50), lineWidth: 1))
-                    .shadow(color: Color.black.opacity(0.14), radius: 14, y: 5)
+                    .fill(Color.white.opacity(0.85))
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(0.70), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.10), radius: 14, y: 5)
 
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(Theme.primaryGradient)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 30, height: 30)
                         Image(systemName: "play.fill")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundColor(.white)
                             .offset(x: 1)
                     }
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text(tabTitle)
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundColor(Theme.textPrimary)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(Color(hex: 0x0F172A))
                             .lineLimit(1)
                         Text(subtitle)
-                            .font(.system(size: 9.5))
-                            .foregroundColor(Theme.textTertiary)
+                            .font(.system(size: 8.5))
+                            .foregroundColor(Color(hex: 0x64748B))
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
-            .padding(.top, 10)
-
-            // 右侧悬浮快捷：粘贴（仅在解析页有意义）
-            HStack {
-                Spacer()
-                if store.selectedTab == 0 {
-                    Button {
-                        store.pasteFromClipboard()
-                    } label: {
-                        Image(systemName: "doc.on.clipboard")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 36, height: 36)
-                            .background(Theme.primaryGradient)
-                            .clipShape(Circle())
-                            .shadow(color: Theme.primary.opacity(0.45), radius: 8, y: 4)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-            }
-            .padding(.trailing, 24)
-            .padding(.top, 12)
+            .padding(.top, 4)
         }
+        .padding(.top, 8)
     }
 
     private var tabTitle: String {
@@ -195,12 +179,12 @@ struct FloatingTabBar: View {
         ZStack {
             // 浅色半透明胶囊背景
             Capsule()
-                .fill(Color.white.opacity(0.82))
+                .fill(Color.white.opacity(0.92))
                 .overlay(
                     Capsule()
                         .stroke(Color.white.opacity(0.70), lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.12), radius: 18, y: 6)
+                .shadow(color: Color.black.opacity(0.15), radius: 22, y: 8)
 
             HStack(spacing: 6) {
                 ForEach(tabs, id: \.index) { tab in
@@ -231,12 +215,12 @@ struct FloatingTabBar: View {
                     .buttonStyle(PlainButtonStyle())
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
         }
-        .frame(height: 52)
-        .padding(.horizontal, 28)
-        .padding(.bottom, 16)
+        .frame(height: 54)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 14)
     }
 }
 
