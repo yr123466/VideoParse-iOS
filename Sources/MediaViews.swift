@@ -8,9 +8,9 @@ struct VideoPlayerBox: View {
     let cover: String
     var aspect: CGFloat = 16.0 / 9.0
     var title: String = ""
+    var copyText: String = ""
+    var shareItems: () -> [Any] = { [] }
     var onDownload: (() -> Void)? = nil
-    var onShare: (() -> Void)? = nil
-    var onCopyText: (() -> Void)? = nil
 
     @State private var showImmersive = false
 
@@ -67,9 +67,9 @@ struct VideoPlayerBox: View {
                 url: url,
                 cover: cover,
                 title: title,
-                onDownload: onDownload,
-                onShare: onShare,
-                onCopyText: onCopyText
+                copyText: copyText,
+                shareItems: shareItems,
+                onDownload: onDownload
             )
         }
     }
@@ -104,11 +104,15 @@ struct ImmersiveVideoPlayer: View {
     let url: String
     let cover: String
     var title: String = ""
+    var copyText: String = ""
+    var shareItems: () -> [Any] = { [] }
     var onDownload: (() -> Void)? = nil
-    var onShare: (() -> Void)? = nil
-    var onCopyText: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+
+    @State private var localShare: SharePayload? = nil
+    @State private var hud: String? = nil
+    @State private var hudTask: Task<Void, Never>? = nil
 
     @State private var player = AVPlayer()
     @State private var isPlaying = false
@@ -148,6 +152,23 @@ struct ImmersiveVideoPlayer: View {
             }
         }
         .statusBarHidden(true)
+        .overlay(alignment: .bottom) {
+            if let hud = hud {
+                Text(hud)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.black.opacity(0.62))
+                    .clipShape(Capsule())
+                    .padding(.bottom, 130)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+            }
+        }
+        .sheet(item: $localShare) { payload in
+            ShareSheet(items: payload.items)
+        }
         .onAppear(perform: setup)
         .onDisappear {
             player.pause()
@@ -236,14 +257,29 @@ struct ImmersiveVideoPlayer: View {
 
                     Spacer()
 
-                    if let copy = onCopyText {
-                        circleButton(icon: "text.quote", action: copy)
+                    if !copyText.isEmpty {
+                        circleButton(icon: "text.quote") {
+                            Clipboard.copy(copyText)
+                            showHUD("无水印直链已复制")
+                        }
                     }
-                    if let share = onShare {
-                        circleButton(icon: "square.and.arrow.up", action: share)
+                    circleButton(icon: "square.and.arrow.up") {
+                        let items = shareItems()
+                        if items.isEmpty {
+                            showHUD("暂无可分享内容")
+                        } else {
+                            localShare = SharePayload(items: items)
+                            hideTaskCancel()
+                        }
                     }
                     if let download = onDownload {
-                        circleButton(icon: "arrow.down.to.line", action: download)
+                        circleButton(icon: "arrow.down.to.line") {
+                            // 先退出全屏，再交由外层弹出下载面板
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                download()
+                            }
+                        }
                     }
                 }
             }
@@ -335,6 +371,23 @@ struct ImmersiveVideoPlayer: View {
                 withAnimation { controlsVisible = false }
             }
         }
+    }
+
+    private func showHUD(_ text: String) {
+        hudTask?.cancel()
+        withAnimation(.easeOut(duration: 0.18)) { hud = text }
+        hudTask = Task {
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                withAnimation(.easeIn(duration: 0.2)) { hud = nil }
+            }
+        }
+    }
+
+    private func hideTaskCancel() {
+        hudTask?.cancel()
+        hud = nil
     }
 
     private func removeObserver() {

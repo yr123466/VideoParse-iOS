@@ -5,6 +5,30 @@ Android（Kotlin + Jetpack Compose）应用的 iOS 完整移植版，使用 **Sw
 > 第三方公开接口打包客户端：粘贴分享链接 → 解析无水印视频 / 图集 / 背景音乐 → 下载、预览、收藏。
 > 本仓库不存储任何媒体资源，接口稳定性与内容版权由第三方接口与原始平台负责。
 
+**新版本**: 已在 GitHub Release（tag `v1.3.0`）上启用，App 内打开自动检测最新版本。
+
+## ✨ 功能亮点（iOS 特有）
+
+| 功能 | 说明 |
+| --- | --- |
+| **沉浸式全屏播放** | 视频点击全屏，横屏切换；画中画、双击求下一帧、进度条拖动；暂停呈显示缩略图。 |
+| **实时动图 & 实况照片** | `type: "live"` 动图全屏内联播放，支持批量下载、保存为真正的 Live Photo。 |
+| **按 Release 自动更新** | 每次推送到 `main` 构建发包，并打 tag（如 `v1.3.0`）；App 内“检查更新”调用 GitHub API 对比当前包与最新 Release。 |
+| **iOS 26 新视觉** | 白色暗纹底、圆角卡片、浮动 TabBar、UI 16pt radius 等。 |
+| **零排异安装** | 不上传应用市场，eSign/Sideloadly/AltStore 方案随选。 |
+| **剪贴板静默探测** | 启动时仅匹配 URL，不弹出粘贴授权。 |
+
+## 主要更新（v1.3.0）
+
+- 沉浸式全屏播放（横屏/竖屏自由切换、媒体组合）+ 悬浮小按钮
+- FullscreenOverlay / fullScreenCover 统一入口，去 Footer 条目、Footnote 文本隐藏
+- 版本检测从 `API/GitHub APIs/Release` 到 `tag_name/code`，避免误报
+- 术语翻译统一，移除部分冗余/重复的 UI 元素
+
+---
+
+## ✨ 功能对照（Android → iOS）
+
 ---
 
 ## ✨ 功能对照（Android → iOS）
@@ -48,6 +72,16 @@ VideoParse-iOS/
 └── .github/workflows/ios-build.yml
 ```
 
+## 🔍 更新检测（App 内）
+
+App 启动后每 24 小时主动查询一次 latest Release。如果 `tag_name` 大于当前 `CFBundleShortVersionString`，则弹出：
+
+- 新版本号、发布日期
+- 从 Release body 提取的更新说明
+- 按钮：**不再提醒 / 取消 / 去 GitHub 更新**
+
+不想再弹窗可在设置里勾选“不再提醒”。
+
 ## 🚀 云端构建（无需 Mac）
 
 1. 把本仓库推到 GitHub（默认分支 `main`）。
@@ -63,7 +97,20 @@ VideoParse-iOS/
    - 或直接访问 Release 固定直链：
      `https://github.com/<你的用户名>/VideoParse-iOS/releases/latest/download/VideoParse-unsigned.ipa`
 
+   另外，在新版中推荐 **Release 发布**：每次构建成功会自动打 tag（如 `v1.3.0`）并发布 Release，App 内“检查更新”会按 `tag_name` 对比版本。
+
 构建产物是**未签名 IPA**，需要自签后安装。
+
+## 📲 安装方式
+
+| 工具 | 说明 |
+| --- | --- |
+| **eSign / 全能签** | 手机端直接导入上面的 IPA 直链，用免费 Apple ID 自签（7 天有效，可自动续签） |
+| **AltStore / SideStore** | 电脑或手机安装 AltStore，导入 IPA，同一 Wi-Fi 下自动续签 |
+| **Sideloadly** | 电脑 + 数据线，拖入 IPA，输入 Apple ID 签名安装 |
+| **TrollStore** | 仅支持特定系统版本，可永久签名（免 7 天限制） |
+
+> 免费开发者证书签名的应用有效期 7 天，到期需重新签名；付费开发者账号（$99/年）为 1 年。
 
 ## 📲 安装方式
 

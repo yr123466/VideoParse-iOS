@@ -403,14 +403,6 @@ struct ParseView: View {
         .padding(.top, 4)
     }
 
-    private var footerNote: some View {
-        Text("本应用为第三方公开接口打包客户端，仅提供链接格式化与下载辅助，不存储任何媒体文件。")
-            .font(.system(size: 9.5))
-            .foregroundColor(Theme.textTertiary)
-            .multilineTextAlignment(.center)
-            .padding(.top, 6)
-            .padding(.horizontal, 12)
-    }
 }
 
 // MARK: - 解析结果卡片
@@ -461,15 +453,13 @@ struct ResultCard: View {
                         cover: data.cover ?? "",
                         aspect: videoAspect,
                         title: data.title ?? "",
+                        copyText: activeURL,
+                        shareItems: {
+                            [URL(string: activeURL ?? "")].compactMap { $0 }
+                        },
                         onDownload: {
+                            store.dismissImmersivePlayer()
                             store.downloadVideo(url: activeURL, title: data.title ?? "video")
-                        },
-                        onShare: {
-                            if let link = URL(string: activeURL) { store.share([link]) }
-                        },
-                        onCopyText: {
-                            Clipboard.copy(activeURL)
-                            store.showToast("无水印直链已复制")
                         }
                     )
                 }
