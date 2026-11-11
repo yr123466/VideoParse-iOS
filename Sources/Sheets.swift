@@ -107,105 +107,88 @@ struct DisclaimerSheet: View {
 
 // MARK: - 版本更新
 
-struct UpdateSheet: View {
+struct UpdateAlertCard: View {
 
-    static let releasePage = "https://github.com/yr123466/VideoParse-iOS/releases/latest"
+    let info: AppUpdateInfo
 
     @EnvironmentObject private var store: AppStore
-    @Environment(\.dismiss) private var dismiss
-
-    let info: AppUpdateInfo?
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 9) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.primaryGradient)
-                        .frame(width: 56, height: 56)
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Text("🎉")
+                        .font(.system(size: 21))
+                    Text("发现新版本")
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundColor(Color.black)
+                    Spacer(minLength: 0)
                 }
-                .padding(.top, 22)
 
-                Text(info?.updateTitle ?? "发现新版本")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Theme.textPrimary)
+                Text(info.version)
+                    .font(.system(size: 27, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color.black)
 
-                HStack(spacing: 7) {
-                    Text("当前 v\(AppStore.appVersion)")
-                    Text("→")
-                    Text("最新 v\(info?.version ?? "-")")
-                        .foregroundColor(Theme.primary)
+                ScrollView(showsIndicators: false) {
+                    Text(info.notes.isEmpty ? "修复已知问题，优化解析稳定性。" : info.notes)
+                        .font(.system(size: 12.5))
+                        .foregroundColor(Color(hex: 0x333333))
+                        .lineSpacing(4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(Theme.textSecondary)
+                .frame(maxHeight: 190)
 
-                HStack(spacing: 6) {
-                    if let size = info?.updateSize, !size.isEmpty {
-                        InfoChip(icon: "internaldrive", text: size)
-                    }
-                    if let time = info?.updateTime, !time.isEmpty {
-                        InfoChip(icon: "calendar", text: time)
-                    }
-                    if info?.forceUpdate == true {
-                        InfoChip(icon: "exclamationmark.triangle.fill", text: "强制更新", tint: Theme.coral)
-                    }
+                if !info.publishedDate.isEmpty {
+                    Text("发布于 \(info.publishedDate)")
+                        .font(.system(size: 10))
+                        .foregroundColor(Color(hex: 0x9CA3AF))
                 }
             }
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 20)
+            .padding(.top, 22)
+            .padding(.bottom, 16)
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("更新内容")
-                        .font(.system(size: 11.5, weight: .bold))
-                        .foregroundColor(Theme.textPrimary)
-                    Text(info?.updateContent ?? "暂无更新说明")
-                        .font(.system(size: 11))
-                        .foregroundColor(Theme.textSecondary)
-                        .lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.surfaceAlt)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .padding(.horizontal, 18)
-                .padding(.top, 14)
-            }
+            Divider()
 
-            VStack(spacing: 8) {
+            HStack(spacing: 0) {
                 Button {
-                    UIApplication.shared.open(URL(string: UpdateSheet.releasePage)!)
+                    store.skipUpdateVersion(info.version)
                 } label: {
-                    Text("前往 GitHub 下载 iOS 版")
+                    Text("不再提醒")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(hex: 0x6B7280))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
                 }
-                .buttonStyle(PrimaryActionStyle())
+                .buttonStyle(PlainButtonStyle())
 
-                Text("iOS 版由 GitHub Actions 云端构建，下载最新未签名 IPA 后用 eSign / AltStore 自签安装。")
-                    .font(.system(size: 9.5))
-                    .foregroundColor(Theme.textTertiary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 4)
-
-                if info?.forceUpdate != true {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text("稍后再说")
-                            .font(.system(size: 11.5, weight: .medium))
-                            .foregroundColor(Theme.textSecondary)
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                Button {
+                    store.dismissUpdate()
+                } label: {
+                    Text("取消")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(hex: 0x6B7280))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
                 }
+                .buttonStyle(PlainButtonStyle())
+
+                Button {
+                    store.openUpdatePage(info)
+                } label: {
+                    Text("GitHub")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: 0x12864F))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 22)
         }
-        .background(Theme.bg)
-        .interactiveDismissDisabled(info?.forceUpdate == true)
+        .frame(width: 322)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 30, y: 12)
     }
 }
 

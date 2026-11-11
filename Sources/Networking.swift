@@ -22,7 +22,9 @@ enum APIError: LocalizedError {
 struct APIClient {
 
     static let base = "https://api-new.ifphp.com"
-    static let updateURL = "https://raw.githubusercontent.com/yr123466/JSON/refs/heads/main/bugpkmini.json"
+    /// 方法 B：直接读取本仓库的 Release（公开仓库，无需 token）
+    static let releaseAPI = "https://api.github.com/repos/yr123466/VideoParse-iOS/releases/latest"
+    static let releasePage = "https://github.com/yr123466/VideoParse-iOS/releases/latest"
 
     static let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 VideoParse/1.0"
     static let mediaUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
@@ -90,16 +92,21 @@ struct APIClient {
     }
 
     static func checkUpdate() async throws -> AppUpdateInfo? {
-        guard let url = URL(string: updateURL) else { return nil }
+        guard let url = URL(string: releaseAPI) else { return nil }
         var req = URLRequest(url: url)
         req.timeoutInterval = 18
+        req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         req.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         do {
-            let (data, _) = try await URLSession.shared.data(for: req)
+            let (data, response) = try await URLSession.shared.data(for: req)
+            if let http = response as? HTTPURLResponse, http.statusCode == 404 {
+                return nil   // 还没有发布过 Release
+            }
             guard let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
                 return nil
             }
-            return AppUpdateInfo(json: obj)
+            let info = AppUpdateInfo(json: obj)
+            return info.version.isEmpty ? nil : info
         } catch {
             throw APIError.transport("检查更新失败：\(error.localizedDescription)")
         }

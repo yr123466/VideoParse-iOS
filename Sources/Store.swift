@@ -31,8 +31,14 @@ final class AppStore: ObservableObject {
 
     // MARK: 常量
 
-    static let appVersion = "1.2.0"
-    static let appBuild = 3
+    /// 版本号唯一来源：Info.plist（由 project.yml 的 MARKETING_VERSION / CURRENT_PROJECT_VERSION 注入）
+    static var appVersion: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "1.0.0"
+    }
+
+    static var appBuild: Int {
+        Int((Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "1") ?? 1
+    }
     static let sponsorURL = "https://zs.69yr.cn"
     static let feedbackEmail = "3176210846@qq.com"
 
@@ -41,6 +47,7 @@ final class AppStore: ObservableObject {
         static let autoClipboard = "auto_parse_clipboard"
         static let preferHighQuality = "prefer_high_quality"
         static let disclaimerAccepted = "disclaimer_accepted"
+        static let skippedUpdateVersion = "skipped_update_version"
     }
 
     // MARK: 已发布状态
@@ -425,7 +432,12 @@ final class AppStore: ObservableObject {
                 if manual { updateState = .upToDate("当前已是最新版本 (v\(AppStore.appVersion))") }
                 return
             }
-            if AppStore.isNewer(serverVersion: info.version, serverCode: info.versionCode) {
+            let skipped = defaults.string(forKey: Keys.skippedUpdateVersion)
+            if AppStore.isNewer(serverVersion: info.version) {
+                if !manual && skipped == info.version {
+                    updateState = .idle          // 用户选择过「不再提醒」该版本
+                    return
+                }
                 pendingUpdate = info
                 showUpdate = true
                 updateState = .idle
@@ -437,14 +449,32 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func dismissUpdate() {
+        showUpdate = false
+    }
+
+    /// 不再提醒这个版本（手动检查时仍会提示）
+    func skipUpdateVersion(_ version: String) {
+        defaults.set(version, forKey: Keys.skippedUpdateVersion)
+        showUpdate = false
+        showToast("已忽略 v\(version) 的更新提醒")
+    }
+
+    func openUpdatePage(_ info: AppUpdateInfo) {
+        let link = info.downloadUrl.isEmpty ? APIClient.releasePage : info.downloadUrl
+        if let url = URL(string: link) {
+            UIApplication.shared.open(url)
+        }
+    }
+
     func checkUpdateNow() {
         Task { await refreshUpdate(manual: true) }
     }
 
-    private static func isNewer(serverVersion: String, serverCode: Int) -> Bool {
-        if serverCode > AppStore.appBuild { return true }
+    static func isNewer(serverVersion: String) -> Bool {
         let server = serverVersion.split(separator: ".").compactMap { Int($0) }
         let current = AppStore.appVersion.split(separator: ".").compactMap { Int($0) }
+        guard !server.isEmpty else { return false }
         let count = max(server.count, current.count)
         for i in 0..<count {
             let s = i < server.count ? server[i] : 0

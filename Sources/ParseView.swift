@@ -456,7 +456,22 @@ struct ResultCard: View {
                         url: data.extractAudioUrl() ?? ""
                     )
                 } else if !activeURL.isEmpty {
-                    VideoPlayerBox(url: activeURL, cover: data.cover ?? "", aspect: videoAspect)
+                    VideoPlayerBox(
+                        url: activeURL,
+                        cover: data.cover ?? "",
+                        aspect: videoAspect,
+                        title: data.title ?? "",
+                        onDownload: {
+                            store.downloadVideo(url: activeURL, title: data.title ?? "video")
+                        },
+                        onShare: {
+                            if let link = URL(string: activeURL) { store.share([link]) }
+                        },
+                        onCopyText: {
+                            Clipboard.copy(activeURL)
+                            store.showToast("无水印直链已复制")
+                        }
+                    )
                 }
 
                 titleBlock

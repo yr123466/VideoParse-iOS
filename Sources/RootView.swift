@@ -19,6 +19,20 @@ struct RootView: View {
 
         }
         .ignoresSafeArea(edges: [.horizontal])
+        .overlay {
+            if store.showUpdate, let info = store.pendingUpdate {
+                ZStack {
+                    Color.black.opacity(0.38)
+                        .ignoresSafeArea()
+                        .onTapGesture { store.dismissUpdate() }
+
+                    UpdateAlertCard(info: info)
+                        .environmentObject(store)
+                        .transition(.scale(scale: 0.94).combined(with: .opacity))
+                }
+                .zIndex(200)
+            }
+        }
         .overlay(alignment: .top) {
             if let toast = store.toast {
                 ToastBanner(text: toast)
@@ -30,10 +44,6 @@ struct RootView: View {
         }
         .sheet(isPresented: $store.showDisclaimer) {
             DisclaimerSheet()
-                .environmentObject(store)
-        }
-        .sheet(isPresented: $store.showUpdate) {
-            UpdateSheet(info: store.pendingUpdate)
                 .environmentObject(store)
         }
         .sheet(isPresented: $downloads.isVisible) {

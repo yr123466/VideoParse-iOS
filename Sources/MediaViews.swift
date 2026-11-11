@@ -1,72 +1,348 @@
 import SwiftUI
 import AVKit
 
-// MARK: - 视频播放
+// MARK: - 视频播放（点击进入沉浸式全屏）
 
 struct VideoPlayerBox: View {
     let url: String
     let cover: String
     var aspect: CGFloat = 16.0 / 9.0
+    var title: String = ""
+    var onDownload: (() -> Void)? = nil
+    var onShare: (() -> Void)? = nil
+    var onCopyText: (() -> Void)? = nil
 
-    @State private var player: AVPlayer?
+    @State private var showImmersive = false
 
     var body: some View {
         ZStack {
             Color.black
-            if let player = player {
-                VideoPlayer(player: player)
-            } else {
-                RemoteImage(url: cover)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-                Color.black.opacity(0.28)
+            RemoteImage(url: cover)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+            Color.black.opacity(0.25)
 
-                Button {
-                    start()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.92))
-                            .frame(width: 62, height: 62)
-                            .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(Color(hex: 0x0369A1))
-                            .offset(x: 2)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.94))
+                    .frame(width: 62, height: 62)
+                    .shadow(color: .black.opacity(0.28), radius: 14, y: 5)
+                Image(systemName: "play.fill")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Color(hex: 0x0369A1))
+                    .offset(x: 2)
+            }
 
-                VStack {
+            VStack {
+                HStack {
                     Spacer()
-                    HStack {
-                        Image(systemName: "video.fill")
-                            .font(.system(size: 9))
-                        Text("点击播放无水印原片")
-                            .font(.system(size: 10, weight: .medium))
-                        Spacer()
-                    }
-                    .foregroundColor(.white.opacity(0.92))
-                    .padding(10)
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Color.black.opacity(0.42))
+                        .clipShape(Circle())
                 }
+                .padding(9)
+                Spacer()
+                HStack(spacing: 5) {
+                    Image(systemName: "video.fill").font(.system(size: 9))
+                    Text("点击全屏沉浸播放")
+                        .font(.system(size: 10, weight: .medium))
+                    Spacer()
+                }
+                .foregroundColor(.white.opacity(0.94))
+                .padding(10)
             }
         }
         .aspectRatio(aspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .onChange(of: url) { _ in
-            player?.pause()
-            player = nil
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !url.isEmpty else { return }
+            showImmersive = true
         }
+        .fullScreenCover(isPresented: $showImmersive) {
+            ImmersiveVideoPlayer(
+                url: url,
+                cover: cover,
+                title: title,
+                onDownload: onDownload,
+                onShare: onShare,
+                onCopyText: onCopyText
+            )
+        }
+    }
+}
+
+// MARK: - 沉浸式全屏播放器
+
+struct PlayerSurface: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> PlayerUIView {
+        let view = PlayerUIView()
+        view.playerLayer.player = player
+        view.playerLayer.videoGravity = .resizeAspect
+        view.backgroundColor = .black
+        return view
+    }
+
+    func updateUIView(_ uiView: PlayerUIView, context: Context) {
+        if uiView.playerLayer.player !== player {
+            uiView.playerLayer.player = player
+        }
+    }
+}
+
+final class PlayerUIView: UIView {
+    override class var layerClass: AnyClass { AVPlayerLayer.self }
+    var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+}
+
+struct ImmersiveVideoPlayer: View {
+    let url: String
+    let cover: String
+    var title: String = ""
+    var onDownload: (() -> Void)? = nil
+    var onShare: (() -> Void)? = nil
+    var onCopyText: (() -> Void)? = nil
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var player = AVPlayer()
+    @State private var isPlaying = false
+    @State private var progress: Double = 0
+    @State private var duration: Double = 0
+    @State private var controlsVisible = true
+    @State private var isSeeking = false
+    @State private var timeObserver: Any?
+    @State private var hideTask: Task<Void, Never>?
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            PlayerSurface(player: player)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    if controlsVisible {
+                        togglePlay()
+                    } else {
+                        revealControls()
+                    }
+                }
+
+            if !isPlaying {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 44, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.85))
+                    .shadow(color: .black.opacity(0.4), radius: 12)
+                    .allowsHitTesting(false)
+                    .opacity(controlsVisible ? 1 : 0)
+            }
+
+            if controlsVisible {
+                controls
+                    .transition(.opacity)
+            }
+        }
+        .statusBarHidden(true)
+        .onAppear(perform: setup)
         .onDisappear {
-            player?.pause()
+            player.pause()
+            removeObserver()
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
+        .animation(.easeInOut(duration: 0.2), value: controlsVisible)
+    }
+
+    // MARK: 控件
+
+    private var controls: some View {
+        VStack {
+            HStack(spacing: 10) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 36, height: 36)
+                        .background(Color.white.opacity(0.16))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                Text(title.isEmpty ? "无水印预览" : title)
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+
+            Spacer()
+
+            VStack(spacing: 12) {
+                HStack {
+                    Text(Fmt.duration(isSeeking ? progress * duration : player.currentTime().seconds))
+                    Spacer()
+                    Text(Fmt.duration(duration))
+                }
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.white.opacity(0.85))
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.25)).frame(height: 3)
+                        Capsule()
+                            .fill(Color.white)
+                            .frame(width: max(0, geo.size.width * progress), height: 3)
+                    }
+                    .frame(maxHeight: .infinity, alignment: .center)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                isSeeking = true
+                                let ratio = min(max(value.location.x / geo.size.width, 0), 1)
+                                progress = ratio
+                            }
+                            .onEnded { _ in
+                                let target = CMTime(seconds: progress * duration, preferredTimescale: 600)
+                                player.seek(to: target)
+                                isSeeking = false
+                                scheduleHide()
+                            }
+                    )
+                }
+                .frame(height: 18)
+
+                HStack(spacing: 10) {
+                    Button {
+                        togglePlay()
+                    } label: {
+                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                            .background(Color.white.opacity(0.16))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Spacer()
+
+                    if let copy = onCopyText {
+                        circleButton(icon: "text.quote", action: copy)
+                    }
+                    if let share = onShare {
+                        circleButton(icon: "square.and.arrow.up", action: share)
+                    }
+                    if let download = onDownload {
+                        circleButton(icon: "arrow.down.to.line", action: download)
+                    }
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 26)
         }
     }
 
-    private func start() {
+    private func circleButton(icon: String, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            scheduleHide()
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 38, height: 38)
+                .background(Color.white.opacity(0.14))
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
+    // MARK: 播放控制
+
+    private func setup() {
         guard let link = URL(string: url) else { return }
-        let next = AVPlayer(url: link)
-        player = next
-        next.play()
+        UIApplication.shared.isIdleTimerDisabled = true
+        let item = AVPlayerItem(url: link)
+        player.replaceCurrentItem(with: item)
+        player.play()
+        isPlaying = true
+
+        timeObserver = player.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.35, preferredTimescale: 600),
+            queue: .main
+        ) { time in
+            if isSeeking { return }
+            let total = item.duration.seconds
+            if total.isFinite && total > 0 { duration = total }
+            let current = time.seconds
+            if current.isFinite, duration > 0 {
+                progress = min(max(current / duration, 0), 1)
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: item,
+            queue: .main
+        ) { _ in
+            isPlaying = false
+            controlsVisible = true
+        }
+
+        scheduleHide()
+    }
+
+    private func togglePlay() {
+        if isPlaying {
+            player.pause()
+            isPlaying = false
+            controlsVisible = true
+            hideTask?.cancel()
+        } else {
+            if progress >= 0.999 {
+                player.seek(to: .zero)
+                progress = 0
+            }
+            player.play()
+            isPlaying = true
+            scheduleHide()
+        }
+    }
+
+    private func revealControls() {
+        controlsVisible = true
+        scheduleHide()
+    }
+
+    private func scheduleHide() {
+        hideTask?.cancel()
+        guard isPlaying else { return }
+        hideTask = Task {
+            try? await Task.sleep(nanoseconds: 3_200_000_000)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                withAnimation { controlsVisible = false }
+            }
+        }
+    }
+
+    private func removeObserver() {
+        if let observer = timeObserver {
+            player.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+        hideTask?.cancel()
     }
 }
 

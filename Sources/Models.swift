@@ -339,24 +339,45 @@ struct ParseResponse {
 }
 
 struct AppUpdateInfo {
-    var version: String = "1.0.0"
-    var versionCode: Int = 1
-    var forceUpdate: Bool = false
-    var updateTitle: String = "发现新版本"
-    var updateContent: String = ""
+    var version: String = ""          // 由 tag 解析，例如 1.3.0
+    var title: String = "发现新版本"
+    var notes: String = ""
     var downloadUrl: String = ""
-    var updateTime: String = ""
-    var updateSize: String = ""
+    var htmlUrl: String = ""
+    var publishedAt: String = ""
+    var forceUpdate: Bool = false
 
     init(json: [String: Any]) {
-        version = json.str("version") ?? "1.0.0"
-        versionCode = json.intv("versionCode") ?? json.intv("version_code") ?? 1
-        forceUpdate = json.bool("forceUpdate") ?? json.bool("force_update") ?? false
-        updateTitle = json.str("updateTitle") ?? json.str("update_title") ?? "发现新版本"
-        updateContent = json.str("updateContent") ?? json.str("update_content") ?? ""
-        downloadUrl = json.str("downloadUrl") ?? json.str("download_url") ?? ""
-        updateTime = json.str("updateTime") ?? json.str("update_time") ?? ""
-        updateSize = json.str("updateSize") ?? json.str("update_size") ?? ""
+        let tag = json.str("tag_name") ?? ""
+        version = AppUpdateInfo.normalize(tag)
+        title = json.str("name") ?? "发现新版本"
+        notes = json.str("body") ?? ""
+        htmlUrl = json.str("html_url") ?? ""
+        publishedAt = json.str("published_at") ?? ""
+
+        var assetUrl = ""
+        for asset in json.dictArray("assets") {
+            let name = asset.str("name") ?? ""
+            if name.lowercased().hasSuffix(".ipa") {
+                assetUrl = asset.str("browser_download_url") ?? ""
+                break
+            }
+        }
+        downloadUrl = assetUrl.isEmpty ? htmlUrl : assetUrl
+    }
+
+    /// "v1.3.0" -> "1.3.0"；非版本号返回空串
+    static func normalize(_ tag: String) -> String {
+        var text = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.lowercased().hasPrefix("v") { text = String(text.dropFirst()) }
+        guard let first = text.first, first.isNumber else { return "" }
+        return text
+    }
+
+    var publishedDate: String {
+        guard publishedAt.count >= 10 else { return "" }
+        let idx = publishedAt.index(publishedAt.startIndex, offsetBy: 10)
+        return String(publishedAt[..<idx])
     }
 }
 

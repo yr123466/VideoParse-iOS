@@ -344,7 +344,21 @@ struct LibraryDetailSheet: View {
         } else if item.isImageMedia && !item.imageList.isEmpty {
             ImagePager(images: item.imageList, liveVideos: item.liveVideos ?? [], aspect: 0.82)
         } else if !item.videoUrl.isEmpty {
-            VideoPlayerBox(url: item.videoUrl, cover: item.coverUrl)
+            VideoPlayerBox(
+                url: item.videoUrl,
+                cover: item.coverUrl,
+                title: item.displayTitle,
+                onDownload: {
+                    store.downloadVideo(url: item.videoUrl, title: item.displayTitle)
+                },
+                onShare: {
+                    if let link = URL(string: item.videoUrl) { store.share([link]) }
+                },
+                onCopyText: {
+                    Clipboard.copy(item.videoUrl)
+                    store.showToast("无水印直链已复制")
+                }
+            )
         } else if !item.coverUrl.isEmpty {
             RemoteImage(url: item.coverUrl, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))

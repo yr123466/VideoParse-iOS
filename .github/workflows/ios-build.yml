@@ -101,23 +101,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          TAG="latest"
-          NOTES=$(printf '自动构建的未签名 IPA（%s）\n\n提交：%s\n大小：%s\n\n安装：使用 eSign / AltStore / Sideloadly 导入本 IPA 并自签。' "${GITHUB_SHA::7}" "${GITHUB_SHA}" "${IPA_SIZE}")
+          PLIST="$RUNNER_TEMP/VideoParse.xcarchive/Products/Applications/VideoParse.app/Info.plist"
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST")
+          BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")
+          TAG="v${VERSION}"
+          echo "发布版本: ${TAG} (build ${BUILD})"
+          NOTES=$(printf '%s\n\n---\n未签名 IPA · 构建 %s · 提交 %s · 大小 %s\n安装：用 eSign / AltStore / Sideloadly 导入本 IPA 自签。' "iOS v${VERSION}" "${BUILD}" "${GITHUB_SHA::7}" "${IPA_SIZE}")
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$RUNNER_TEMP/VideoParse-unsigned.ipa" --clobber
-            gh release edit "$TAG" --notes "$NOTES"
           else
             gh release create "$TAG" "$RUNNER_TEMP/VideoParse-unsigned.ipa" \
-              --title "VideoParse iOS 最新构建" \
+              --title "VideoParse iOS v${VERSION}" \
               --notes "$NOTES" \
               --latest
           fi
           {
-            echo "### ✅ 构建完成"
+            echo "### ✅ 构建完成 v${VERSION} (build ${BUILD})"
             echo ""
             echo "**IPA 直链（手机可下载）**"
             echo ""
             echo "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/VideoParse-unsigned.ipa"
-            echo ""
-            echo "大小：${IPA_SIZE} · 提交：${GITHUB_SHA::7}"
           } >> "$GITHUB_STEP_SUMMARY"
