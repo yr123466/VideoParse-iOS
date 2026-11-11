@@ -1,32 +1,22 @@
-# Xcode
-build/
-DerivedData/
-*.xcworkspace
-xcuserdata/
-*.xcuserstate
-*.xcscmblueprint
-*.moved-aside
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
-*.xccheckout
-*.xcuserdatad
-
-# XcodeGen generated project (regenerated in CI)
-VideoParse.xcodeproj/
-
 # macOS
 .DS_Store
 
-# SwiftPM
-.swiftpm/
-.build/
-Packages/
-Package.resolved
+# Xcode
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcarchive
+*.ipa
 
-# Secrets
+# XcodeGen 生成物（由 CI 执行 xcodegen generate）
+VideoParse.xcodeproj/
+
+# 本地构建日志
+build.log
+
+# 本地私有配置（API Key 等，不提交）
+Secrets.xcconfig
 .env
-*.jks
-*.p12
-*.mobileprovision

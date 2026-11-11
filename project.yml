@@ -1,45 +1,45 @@
 name: VideoParse
 options:
-  # GitHub Actions (macos-14) 使用 Xcode 15.4，默认 xcode16_0 格式无法被读取，需生成兼容格式
+  # 保持与 GitHub macos-14 runner（Xcode 15.4）兼容的工程格式
   projectFormat: xcode15_0
   xcodeVersion: "15.4"
   bundleIdPrefix: com.videoparse
   deploymentTarget:
-    iOS: "15.0"
+    iOS: "16.0"
   createIntermediateGroups: true
   groupSortPosition: top
-  generateEmptyDirectories: true
 
 settings:
   base:
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
-    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
-    ENABLE_BITCODE: NO
-    ALWAYS_SEARCH_USER_PATHS: NO
-    CLANG_ENABLE_MODULES: YES
+    SWIFT_STRICT_CONCURRENCY: minimal
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGNING_REQUIRED: "NO"
+    CODE_SIGNING_ALLOWED: "NO"
+    DEVELOPMENT_TEAM: ""
 
 targets:
   VideoParse:
     type: application
     platform: iOS
-    deploymentTarget: "15.0"
+    deploymentTarget: "16.0"
     sources:
-      - path: VideoParse
-        excludes:
-          - "Resources/Info.plist"
+      - path: Sources
+      - path: Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.videoparse.kxqp
         PRODUCT_NAME: VideoParse
-        INFOPLIST_FILE: VideoParse/Resources/Info.plist
-        GENERATE_INFOPLIST_FILE: NO
-        TARGETED_DEVICE_FAMILY: "1,2"
+        PRODUCT_BUNDLE_IDENTIFIER: com.videoparse.kxqp
+        INFOPLIST_FILE: Support/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        CODE_SIGN_STYLE: Automatic
-        SUPPORTS_MACCATALYST: NO
+        GENERATE_INFOPLIST_FILE: "NO"
+        SWIFT_EMIT_LOC_STRINGS: "NO"
+        ENABLE_PREVIEWS: "NO"
 
 schemes:
   VideoParse:
@@ -47,10 +47,6 @@ schemes:
       targets:
         VideoParse: all
     run:
-      config: Debug
-    profile:
-      config: Release
-    analyze:
       config: Debug
     archive:
       config: Release

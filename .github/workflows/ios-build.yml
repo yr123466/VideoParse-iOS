@@ -1,0 +1,123 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "同时发布到 Release（手机可直接下载安装）"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Toolchain info
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcode-select -p
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Archive (unsigned)
+        env:
+          VIDEOPARSE_API_KEY: ${{ secrets.VIDEOPARSE_API_KEY }}
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project VideoParse.xcodeproj \
+            -scheme VideoParse \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/VideoParse.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            VIDEOPARSE_API_KEY="${VIDEOPARSE_API_KEY}" \
+            clean archive 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Package unsigned IPA
+        run: |
+          set -e
+          APP_PATH="$RUNNER_TEMP/VideoParse.xcarchive/Products/Applications/VideoParse.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::未找到 Archive 产物 $APP_PATH"
+            ls -R "$RUNNER_TEMP/VideoParse.xcarchive/Products" || true
+            exit 1
+          fi
+          rm -rf "$RUNNER_TEMP/ipa"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/"
+          rm -rf "$RUNNER_TEMP/ipa/Payload/VideoParse.app/_CodeSignature"
+          cd "$RUNNER_TEMP/ipa"
+          zip -qry "$RUNNER_TEMP/VideoParse-unsigned.ipa" Payload
+          ls -lh "$RUNNER_TEMP/VideoParse-unsigned.ipa"
+          echo "IPA_SIZE=$(du -h "$RUNNER_TEMP/VideoParse-unsigned.ipa" | cut -f1)" >> "$GITHUB_ENV"
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: ${{ runner.temp }}/build.log
+          retention-days: 5
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VideoParse-unsigned-ipa
+          path: ${{ runner.temp }}/VideoParse-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish to Release
+        if: github.event_name == 'push' || inputs.release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG="latest"
+          NOTES=$(printf '自动构建的未签名 IPA（%s）\n\n提交：%s\n大小：%s\n\n安装：使用 eSign / AltStore / Sideloadly 导入本 IPA 并自签。' "${GITHUB_SHA::7}" "${GITHUB_SHA}" "${IPA_SIZE}")
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$RUNNER_TEMP/VideoParse-unsigned.ipa" --clobber
+            gh release edit "$TAG" --notes "$NOTES"
+          else
+            gh release create "$TAG" "$RUNNER_TEMP/VideoParse-unsigned.ipa" \
+              --title "VideoParse iOS 最新构建" \
+              --notes "$NOTES" \
+              --latest
+          fi
+          {
+            echo "### ✅ 构建完成"
+            echo ""
+            echo "**IPA 直链（手机可下载）**"
+            echo ""
+            echo "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/VideoParse-unsigned.ipa"
+            echo ""
+            echo "大小：${IPA_SIZE} · 提交：${GITHUB_SHA::7}"
+          } >> "$GITHUB_STEP_SUMMARY"
