@@ -92,7 +92,6 @@ struct LibraryView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        }
         .padding(.top, 2)
     }
 
@@ -510,4 +509,5 @@ struct LibraryDetailSheet: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+}
 }
