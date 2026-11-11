@@ -109,6 +109,8 @@ struct DisclaimerSheet: View {
 
 struct UpdateSheet: View {
 
+    static let releasePage = "https://github.com/yr123466/VideoParse-iOS/releases/latest"
+
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
 
@@ -175,15 +177,17 @@ struct UpdateSheet: View {
 
             VStack(spacing: 8) {
                 Button {
-                    if let link = info?.downloadUrl, let url = URL(string: link) {
-                        UIApplication.shared.open(url)
-                    } else {
-                        store.showToast("暂无下载地址")
-                    }
+                    UIApplication.shared.open(URL(string: UpdateSheet.releasePage)!)
                 } label: {
-                    Text("前往下载新版本")
+                    Text("前往 GitHub 下载 iOS 版")
                 }
                 .buttonStyle(PrimaryActionStyle())
+
+                Text("iOS 版由 GitHub Actions 云端构建，下载最新未签名 IPA 后用 eSign / AltStore 自签安装。")
+                    .font(.system(size: 9.5))
+                    .foregroundColor(Theme.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 4)
 
                 if info?.forceUpdate != true {
                     Button {
