@@ -499,32 +499,35 @@ struct ResultCard: View {
     }
 
     private var header: some View {
-        HStack(spacing: 6) {
-            PlatformBadge(platform: response.platform ?? SupportedPlatforms.detect(data.url ?? ""))
-            if data.isLive {
-                InfoChip(icon: "livephoto.play", text: "实况动图", tint: Theme.coral)
-            } else {
-                InfoChip(icon: "film", text: data.primaryQuality)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                PlatformBadge(platform: response.platform ?? SupportedPlatforms.detect(data.url ?? ""))
+                if data.isLive {
+                    InfoChip(icon: "livephoto.play", text: "实况动图", tint: Theme.coral)
+                } else {
+                    InfoChip(icon: "film", text: data.primaryQuality)
+                }
+                if !Fmt.duration(data.duration).isEmpty {
+                    InfoChip(icon: "clock", text: Fmt.duration(data.duration))
+                }
+                let sizeText = data.sizeLabel ?? Fmt.size(data.size)
+                if !sizeText.isEmpty {
+                    InfoChip(icon: "internaldrive", text: sizeText)
+                }
             }
-            if !Fmt.duration(data.duration).isEmpty {
-                InfoChip(icon: "clock", text: Fmt.duration(data.duration))
-            }
-            let sizeText = data.sizeLabel ?? Fmt.size(data.size)
-            if !sizeText.isEmpty {
-                InfoChip(icon: "internaldrive", text: sizeText)
-            }
-            Spacer(minLength: 0)
+            .padding(.vertical, 1)
         }
     }
 
     private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 9) {
             Text(data.title ?? data.desc ?? "未命名作品")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14.5, weight: .semibold))
                 .foregroundColor(Theme.textPrimary)
-                .lineLimit(3)
+                .lineLimit(4)
                 .fixedSize(horizontal: false, vertical: true)
 
+            // 作者 + 发布时间（各自单行，过长自动截断）
             HStack(spacing: 7) {
                 if let avatar = data.author?.avatar, !avatar.isEmpty {
                     RemoteImage(url: avatar, contentMode: .fill)
@@ -541,20 +544,28 @@ struct ResultCard: View {
                 }
 
                 Text(data.author?.name ?? "佚名")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 11.5, weight: .medium))
                     .foregroundColor(Theme.textSecondary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(1)
 
                 if let time = data.publishTime, !time.isEmpty {
-                    Text("·").foregroundColor(Theme.textTertiary)
+                    Text("·")
+                        .font(.system(size: 10))
+                        .foregroundColor(Theme.textTertiary)
                     Text(time)
                         .font(.system(size: 10))
                         .foregroundColor(Theme.textTertiary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
 
                 Spacer(minLength: 0)
+            }
 
+            // 互动数据单独一行，避免与作者挤在一起
+            if data.statistics != nil {
                 StatsRow(stats: data.statistics)
             }
         }

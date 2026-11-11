@@ -793,23 +793,26 @@ struct StatsRow: View {
 
     var body: some View {
         if let stats = stats {
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 item(icon: "heart.fill", value: stats.likeTotal, tint: Theme.coral)
                 item(icon: "bubble.left.fill", value: stats.commentCount, tint: Theme.primary)
                 item(icon: "star.fill", value: stats.collectCount, tint: Theme.amber)
                 item(icon: "play.fill", value: stats.playCount, tint: Theme.indigo)
+                Spacer(minLength: 0)
             }
         }
     }
 
     private func item(icon: String, value: Int64?, tint: Color) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 9))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(tint)
             Text(Fmt.count(value))
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundColor(Theme.textSecondary)
+                .lineLimit(1)
+                .fixedSize()          // 关键：数字不换行、不压缩
         }
     }
 }

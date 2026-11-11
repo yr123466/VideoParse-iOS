@@ -225,7 +225,10 @@ struct InfoChip: View {
             if let icon = icon {
                 Image(systemName: icon).font(.system(size: 9, weight: .semibold))
             }
-            Text(text).font(.system(size: 10, weight: .medium))
+            Text(text)
+                .font(.system(size: 10, weight: .medium))
+                .lineLimit(1)
+                .fixedSize()
         }
         .foregroundColor(tint)
         .padding(.horizontal, 7)

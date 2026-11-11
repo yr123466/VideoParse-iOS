@@ -374,10 +374,12 @@ struct LibraryDetailSheet: View {
                     if !Fmt.duration(item.duration).isEmpty {
                         InfoChip(icon: "clock", text: Fmt.duration(item.duration))
                     }
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 4)
                     Text(Fmt.relative(item.timestamp))
                         .font(.system(size: 9.5))
                         .foregroundColor(Theme.textTertiary)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
 
                 Text(item.displayTitle)
