@@ -99,7 +99,7 @@ enum Theme {
 
 struct CardBox<Content: View>: View {
     var padding: CGFloat = 16
-    var radius: CGFloat = 24
+    var radius: CGFloat = 18
     var fill: AnyShapeStyle? = nil
     var strokeWidth: CGFloat = 1
     @ViewBuilder var content: Content

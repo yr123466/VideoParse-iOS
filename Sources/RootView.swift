@@ -79,19 +79,19 @@ struct RootView: View {
     }
 
     private var topBar: some View {
-        ZStack(alignment: .center) {
-            ZStack {
-                Capsule()
-                    .fill(Color.white.opacity(0.85))
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.white.opacity(0.70), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.10), radius: 14, y: 5)
-
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(Color.white.opacity(0.92))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.white.opacity(0.75), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.12), radius: 14, y: 5)
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+            .overlay(
                 HStack(spacing: 8) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
                             .fill(Theme.primaryGradient)
                             .frame(width: 30, height: 30)
                         Image(systemName: "play.fill")
@@ -111,14 +111,10 @@ struct RootView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 20)
-            .padding(.top, 4)
-        }
-        .padding(.top, 8)
+                .frame(maxWidth: .infinity, alignment: .center)
+            )
     }
 
     private var tabTitle: String {
@@ -177,16 +173,15 @@ struct FloatingTabBar: View {
 
     var body: some View {
         ZStack {
-            // 浅色半透明胶囊背景
-            Capsule()
-                .fill(Color.white.opacity(0.92))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.94))
                 .overlay(
-                    Capsule()
-                        .stroke(Color.white.opacity(0.70), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.75), lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.15), radius: 22, y: 8)
+                .shadow(color: Color.black.opacity(0.14), radius: 18, y: 6)
 
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ForEach(tabs, id: \.index) { tab in
                     Button {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
@@ -195,17 +190,17 @@ struct FloatingTabBar: View {
                     } label: {
                         VStack(spacing: 5) {
                             Image(systemName: tab.icon)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 16, weight: .medium))
                             Text(tab.title)
                                 .font(.system(size: 10.5, weight: .medium))
                         }
                         .foregroundColor(selected == tab.index ? Theme.primary : Color(hex: 0x64748B))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
+                        .padding(.vertical, 8)
                         .background(
                             ZStack {
                                 if selected == tab.index {
-                                    Capsule()
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                                         .fill(Theme.primary.opacity(0.13))
                                         .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 2)
                                 }
@@ -216,10 +211,10 @@ struct FloatingTabBar: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.vertical, 5)
         }
-        .frame(height: 54)
-        .padding(.horizontal, 24)
+        .frame(height: 58)
+        .padding(.horizontal, 20)
         .padding(.bottom, 14)
     }
 }
