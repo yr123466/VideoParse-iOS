@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import UIKit
 import Photos
 
@@ -124,7 +125,7 @@ enum DownloadStatus: String {
 }
 
 struct DownloadItem: Identifiable {
-    let id: UUID
+    var id: UUID = UUID()
     var name: String
     var progress: Double = 0
     var status: DownloadStatus = .pending
