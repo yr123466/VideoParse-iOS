@@ -27,7 +27,7 @@ struct SettingsView: View {
             .padding(.top, 13)
             .padding(.bottom, 30)
         }
-        .background(Theme.bg)
+        .background(Color.clear)
         .onAppear {
             keyDraft = store.customApiKey
             refreshDownloads()

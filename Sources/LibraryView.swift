@@ -47,7 +47,7 @@ struct LibraryView: View {
             .padding(.top, 13)
             .padding(.bottom, 26)
         }
-        .background(Theme.bg)
+        .background(Color.clear)
         .sheet(item: $detailItem) { item in
             LibraryDetailSheet(item: item)
                 .environmentObject(store)
@@ -55,44 +55,45 @@ struct LibraryView: View {
     }
 
     private var header: some View {
-        CardBox(padding: 15) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 7) {
                     Text("素材库")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.textPrimary)
                     Text("\(store.history.count)")
-                        .font(.system(size: 9.5, weight: .black))
+                        .font(.system(size: 9.5, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2.5)
-                        .background(Color.white.opacity(0.30))
+                        .background(Theme.primary)
                         .clipShape(Capsule())
-                    Spacer()
-                    if !store.history.isEmpty {
-                        Button {
-                            store.clearHistory()
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "trash").font(.system(size: 9, weight: .bold))
-                                Text("清空").font(.system(size: 10, weight: .semibold))
-                            }
-                            .foregroundColor(Theme.coral)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(Color.white.opacity(0.20))
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
                 }
                 Text("一键直放视频 · 图集缩放预览 · 背景音乐收藏")
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.90))
-                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundColor(Theme.textSecondary)
+            }
+
+            Spacer(minLength: 0)
+
+            if !store.history.isEmpty {
+                Button {
+                    store.clearHistory()
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "trash").font(.system(size: 9, weight: .bold))
+                        Text("清空").font(.system(size: 10.5, weight: .semibold))
+                    }
+                    .foregroundColor(Theme.coral)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Theme.coral.opacity(0.09))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(.top, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var tabBar: some View {
@@ -155,20 +156,20 @@ struct LibraryView: View {
                 }
                 Text("暂无匹配的媒体素材")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Theme.textPrimary)
                 Text("在解析界面解析视频、图集或下载音乐后即可在此集中查看")
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.88))
+                    .foregroundColor(Theme.textSecondary)
                     .multilineTextAlignment(.center)
                 Button {
                     store.libraryTab = 0
                 } label: {
                     Text("去解析一条")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(Theme.primary)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.30))
+                        .background(Theme.primary.opacity(0.10))
                         .clipShape(Capsule())
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -311,7 +312,7 @@ struct LibraryDetailSheet: View {
             .padding(.top, 14)
             .padding(.bottom, 24)
         }
-        .background(Theme.bg)
+        .background(Color.clear)
         .overlay(alignment: .topTrailing) {
             Button {
                 dismiss()

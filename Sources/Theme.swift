@@ -53,6 +53,10 @@ enum Theme {
     static let textSecondary = Color.adaptive(light: 0x475569, dark: 0x94A3B8)
     static let textTertiary = Color.adaptive(light: 0x94A3B8, dark: 0x64748B)
 
+    /// 卡片：接近纯白 / 深灰
+    static let cardSurface = Color.adaptive(light: 0xFFFFFF, dark: 0x141C2B)
+    static let cardStroke = Color.adaptive(light: 0xE8ECF3, dark: 0x23304A)
+
     static let primaryGradient = LinearGradient(
         colors: [Color(hex: 0x0EA5E9), Color(hex: 0x4F46E5)],
         startPoint: .leading,
@@ -74,32 +78,31 @@ enum Theme {
         Color.adaptive(light: 0xFFFFFF, dark: 0x0F172A).opacity(0.55)
     )
 
-    /// 背景浮动色块：为主内容区增添深度，不遮挡文字
+    /// 背景：浅色扁平 + 顶部一层极淡的蓝紫渐变（参考 LC Sign 风格）
     static let meshBackground = AnyView(
         ZStack {
-            Color.adaptive(light: 0xF8FAFC, dark: 0x0B0F19)
-            meshBlob(x: 0.70, y: -0.25, size: 620, color: Color(hex: 0x0EA5E9).opacity(0.22), blur: 140)
-            meshBlob(x: -0.15, y: 0.85, size: 560, color: Color(hex: 0x4F46E5).opacity(0.18), blur: 140)
-            meshBlob(x: 0.85, y: 0.55, size: 500, color: Color(hex: 0xD97706).opacity(0.14), blur: 120)
+            Color.adaptive(light: 0xF6F7FA, dark: 0x0B0F19)
+            LinearGradient(
+                colors: [
+                    Color(hex: 0x0EA5E9).opacity(0.10),
+                    Color(hex: 0x4F46E5).opacity(0.06),
+                    Color.clear
+                ],
+                startPoint: .topTrailing,
+                endPoint: .center
+            )
+            .frame(height: 420)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
         .ignoresSafeArea()
     )
-
-    @ViewBuilder
-    static func meshBlob(x: CGFloat, y: CGFloat, size: CGFloat, color: Color, blur: CGFloat) -> some View {
-        Circle()
-            .fill(color)
-            .frame(width: size, height: size)
-            .position(x: UIScreen.main.bounds.width * x, y: UIScreen.main.bounds.height * y)
-            .blur(radius: blur)
-    }
 }
 
 // MARK: - 通用容器：毛玻璃卡
 
 struct CardBox<Content: View>: View {
     var padding: CGFloat = 16
-    var radius: CGFloat = 18
+    var radius: CGFloat = 16
     var fill: AnyShapeStyle? = nil
     var strokeWidth: CGFloat = 1
     @ViewBuilder var content: Content
@@ -109,22 +112,14 @@ struct CardBox<Content: View>: View {
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .fill(fill ?? Theme.glassCardMaterial)
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .fill(LinearGradient(
-                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.04)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ))
-                        .opacity(fill == nil ? 0.5 : 0)
-                }
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(fill ?? AnyShapeStyle(Theme.cardSurface))
             )
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(Color.white.opacity(0.35), lineWidth: strokeWidth)
+                    .stroke(Theme.cardStroke, lineWidth: strokeWidth)
             )
+            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
     }
 }
 

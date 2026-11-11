@@ -59,7 +59,7 @@ struct PlatformsView: View {
             .padding(.top, 13)
             .padding(.bottom, 28)
         }
-        .background(Theme.bg)
+        .background(Color.clear)
         .sheet(item: $detail) { platform in
             PlatformDetailSheet(platform: platform) {
                 detail = nil
@@ -115,7 +115,7 @@ struct PlatformCard: View {
                     Text(platform.emoji)
                         .font(.system(size: 17))
                         .frame(width: 34, height: 34)
-                        .background(Color.white.opacity(0.12))
+                        .background(platform.color.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 1) {
@@ -126,7 +126,7 @@ struct PlatformCard: View {
                             .minimumScaleFactor(0.85)
                         Text(platform.enName)
                             .font(.system(size: 8.5))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(Theme.textTertiary)
                             .lineLimit(1)
                     }
                     Spacer(minLength: 0)
@@ -134,7 +134,7 @@ struct PlatformCard: View {
 
                 Text(platform.formats.prefix(3).joined(separator: " · "))
                     .font(.system(size: 9))
-                    .foregroundColor(.white.opacity(0.88))
+                    .foregroundColor(Theme.textSecondary)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -143,10 +143,10 @@ struct PlatformCard: View {
                     Button(action: onTest) {
                         Text("测试")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(platform.color)
                             .padding(.horizontal, 9)
                             .padding(.vertical, 4)
-                            .background(Color.white.opacity(0.20))
+                            .background(platform.color.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -156,7 +156,7 @@ struct PlatformCard: View {
                     Button(action: onOpen) {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(Theme.textTertiary)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -254,6 +254,6 @@ struct PlatformDetailSheet: View {
             }
             .padding(18)
         }
-        .background(Theme.bg)
+        .background(Color.clear)
     }
 }

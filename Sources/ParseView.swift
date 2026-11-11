@@ -27,7 +27,7 @@ struct ParseView: View {
             .padding(.top, 13)
             .padding(.bottom, 30)
         }
-        .background(Theme.bg)
+        .background(Color.clear)
         .scrollDismissesKeyboard(.interactively)
     }
 
@@ -80,49 +80,49 @@ struct ParseView: View {
     // MARK: 顶部横幅
 
     private var hero: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(alignment: .top, spacing: 8) {
-                Text("全网短视频无水印解析")
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer(minLength: 0)
-                Text("第三方公开接口")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color.white.opacity(0.22))
-                    .clipShape(Capsule())
-            }
+        CardBox(padding: 18) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text("全网短视频无水印解析")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(Theme.textPrimary)
+                    Spacer(minLength: 0)
+                    Text("第三方公开接口")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(Theme.primary)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Theme.primary.opacity(0.10))
+                        .clipShape(Capsule())
+                }
 
-            Text("粘贴分享链接，一键获取视频 / 图集 / 背景音乐原画直链")
-                .font(.system(size: 11.5))
-                .foregroundColor(.white.opacity(0.88))
-                .fixedSize(horizontal: false, vertical: true)
+                Text("粘贴分享链接，一键获取视频 / 图集 / 背景音乐原画直链")
+                    .font(.system(size: 11.5))
+                    .foregroundColor(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 7) {
-                heroStat(value: "33+", label: "主流平台")
-                heroStat(value: "1080P", label: "高清原画")
-                heroStat(value: "0", label: "水印残留")
+                HStack(spacing: 7) {
+                    heroStat(value: "33+", label: "主流平台")
+                    heroStat(value: "1080P", label: "高清原画")
+                    heroStat(value: "0", label: "水印残留")
+                }
+                .padding(.top, 2)
             }
-            .padding(.top, 2)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func heroStat(value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
                 .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(Theme.primary)
             Text(label)
                 .font(.system(size: 9))
-                .foregroundColor(.white.opacity(0.86))
+                .foregroundColor(Theme.textSecondary)
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 5)
-        .background(Color.white.opacity(0.20))
+        .background(Theme.primary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 

@@ -13,34 +13,10 @@ struct RootView: View {
 
             VStack(spacing: 0) {
                 topBar
-                Spacer()
                 content
                 floatingTabBar
             }
 
-            // 右上角：赞赏按钮（浸出顶部，悬浮）
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        store.openSponsor()
-                    } label: {
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Theme.coral)
-                            .frame(width: 40, height: 40)
-                            .background(Theme.coral.opacity(0.16))
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white.opacity(0.45), lineWidth: 1))
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .shadow(color: Theme.coral.opacity(0.30), radius: 8, y: 4)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 42)
-                Spacer()
-            }
-            .ignoresSafeArea(edges: .top)
         }
         .ignoresSafeArea(edges: [.horizontal])
         .overlay(alignment: .top) {
@@ -79,42 +55,62 @@ struct RootView: View {
     }
 
     private var topBar: some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(Color.white.opacity(0.92))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.white.opacity(0.75), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.12), radius: 14, y: 5)
-            .padding(.horizontal, 16)
-            .padding(.top, 6)
-            .overlay(
-                HStack(spacing: 8) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(Theme.primaryGradient)
-                            .frame(width: 30, height: 30)
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .offset(x: 1)
-                    }
+        HStack(spacing: 9) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Theme.primaryGradient)
+                    .frame(width: 30, height: 30)
+                Image(systemName: "play.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                    .offset(x: 1)
+            }
 
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(tabTitle)
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(hex: 0x0F172A))
-                            .lineLimit(1)
-                        Text(subtitle)
-                            .font(.system(size: 8.5))
-                            .foregroundColor(Color(hex: 0x64748B))
-                    }
-                    Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(tabTitle)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundColor(Theme.textPrimary)
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.system(size: 9.5))
+                    .foregroundColor(Theme.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            // 赞赏
+            Button {
+                store.openSponsor()
+            } label: {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Theme.coral)
+                    .frame(width: 34, height: 34)
+                    .background(Theme.coral.opacity(0.10))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // 粘贴（仅解析页）
+            if store.selectedTab == 0 {
+                Button {
+                    store.pasteFromClipboard()
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 34, height: 34)
+                        .background(Theme.primaryGradient)
+                        .clipShape(Circle())
+                        .shadow(color: Theme.primary.opacity(0.30), radius: 6, y: 3)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .center)
-            )
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
     }
 
     private var tabTitle: String {
