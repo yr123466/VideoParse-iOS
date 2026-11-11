@@ -12,7 +12,7 @@ struct ParseView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 13) {
-                if store.clipboardSuggestion != nil {
+                if store.clipboardHint {
                     clipboardBanner
                 }
                 hero
@@ -40,10 +40,10 @@ struct ParseView: View {
                 .foregroundColor(Theme.primary)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("检测到剪贴板中含有视频链接")
+                Text("检测到剪贴板中可能有视频链接")
                     .font(.system(size: 11.5, weight: .semibold))
                     .foregroundColor(Theme.textPrimary)
-                Text(store.clipboardSuggestion ?? "")
+                Text("点击右侧按钮粘贴并解析")
                     .font(.system(size: 10))
                     .foregroundColor(Theme.textSecondary)
                     .lineLimit(1)

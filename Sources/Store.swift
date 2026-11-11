@@ -69,7 +69,7 @@ final class AppStore: ObservableObject {
     @Published var pendingUpdate: AppUpdateInfo? = nil
     @Published var showUpdate: Bool = false
 
-    @Published var clipboardSuggestion: String? = nil
+    @Published var clipboardHint: Bool = false
     @Published var toast: String? = nil
 
     private var toastTask: Task<Void, Never>? = nil
@@ -111,7 +111,7 @@ final class AppStore: ObservableObject {
 
     func setInput(_ text: String) {
         inputText = text
-        clipboardSuggestion = nil
+        clipboardHint = false
     }
 
     func clearInput() {
@@ -122,22 +122,31 @@ final class AppStore: ObservableObject {
     func pasteFromClipboard() {
         if let text = Clipboard.read(), !text.isEmpty {
             inputText = text
-            clipboardSuggestion = nil
+            clipboardHint = false
             showToast("已粘贴剪贴板内容")
         } else {
             showToast("剪贴板中没有文字内容")
         }
     }
 
+    /// 用户点击横幅后才真正读取剪贴板（避免每次启动弹系统粘贴授权）
     func applyClipboardSuggestion() {
-        guard let url = clipboardSuggestion else { return }
+        clipboardHint = false
+        guard let text = Clipboard.read(), !text.isEmpty else {
+            showToast("剪贴板中没有可用的链接")
+            return
+        }
+        let url = AppStore.extractURL(text)
+        guard url.lowercased().hasPrefix("http") else {
+            showToast("剪贴板中没有识别到链接")
+            return
+        }
         inputText = url
-        clipboardSuggestion = nil
         parse(url)
     }
 
     func dismissClipboardSuggestion() {
-        clipboardSuggestion = nil
+        clipboardHint = false
     }
 
     // MARK: 解析
@@ -374,13 +383,18 @@ final class AppStore: ObservableObject {
 
     // MARK: 剪贴板感知
 
+    /// 使用系统 detectPatterns 静默探测（不读取内容、不触发粘贴授权弹窗）
     func checkClipboard() {
         guard autoParseClipboard else { return }
-        guard let text = Clipboard.read(), text.contains("http") else { return }
-        let url = AppStore.extractURL(text)
-        guard url.lowercased().hasPrefix("http") else { return }
-        if url != inputText && url != clipboardSuggestion {
-            clipboardSuggestion = url
+        let pasteboard = UIPasteboard.general
+        guard pasteboard.hasStrings else { return }
+        pasteboard.detectPatterns(for: [.probableWebURL]) { result in
+            guard case .success(let patterns) = result, !patterns.isEmpty else { return }
+            Task { @MainActor in
+                if self.inputText.isEmpty {
+                    withAnimation(.easeOut(duration: 0.2)) { self.clipboardHint = true }
+                }
+            }
         }
     }
 
