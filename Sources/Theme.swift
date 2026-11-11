@@ -109,25 +109,24 @@ struct CardBox<Content: View>: View {
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                ZStack {
-                    if let fill = fill {
-                        fill
-                    } else {
-                        Theme.glassCardMaterial
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.04)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        )
-                    }
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .stroke(Color.white.opacity(0.35), lineWidth: strokeWidth)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .stroke(Theme.stroke.opacity(0.45), lineWidth: 1)
+                AnyShapeStyle(
+                    fill ?? AnyShapeStyle(
+                        Group {
+                            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                                .fill(Theme.glassCardMaterial)
+                            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                                .fill(LinearGradient(
+                                    colors: [Color.white.opacity(0.14), Color.white.opacity(0.04)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                ))
+                        }
+                    )
                 )
-                .shadow(color: Color.black.opacity(0.10), radius: 20, x: 0, y: 10)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .stroke(Color.white.opacity(0.35), lineWidth: strokeWidth)
             )
     }
 }
