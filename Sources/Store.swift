@@ -31,8 +31,8 @@ final class AppStore: ObservableObject {
 
     // MARK: 常量
 
-    static let appVersion = "1.0.0"
-    static let appBuild = 1
+    static let appVersion = "1.2.0"
+    static let appBuild = 3
     static let sponsorURL = "https://zs.69yr.cn"
     static let feedbackEmail = "3176210846@qq.com"
 
@@ -206,7 +206,9 @@ final class AppStore: ObservableObject {
         let isImagePost = hasImages && (effectiveVideo.isEmpty || data.type == "image" || data.type == "live" || images.count > 1)
 
         let mediaType: String
-        if isImagePost || hasImages {
+        if data.isLive {
+            mediaType = "live"
+        } else if isImagePost || hasImages {
             mediaType = "image"
         } else if data.type == "audio" || (effectiveVideo.isEmpty && data.extractAudioUrl() != nil) {
             mediaType = "audio"
@@ -230,6 +232,8 @@ final class AppStore: ObservableObject {
         item.sizeLabel = data.sizeLabel ?? Fmt.size(data.size)
         item.quality = data.quality ?? data.label ?? "原画"
         item.images = images
+        let liveVideos = data.alignedLiveVideos()
+        item.liveVideos = liveVideos.contains(where: { !$0.isEmpty }) ? liveVideos : nil
         item.isFavorite = false
         item.timestamp = Date()
 
@@ -472,6 +476,47 @@ final class AppStore: ObservableObject {
     func downloadAllImages(urls: [String], title: String) {
         guard !urls.isEmpty else { return }
         DownloadManager.shared.downloadBatch(urls: urls, baseTitle: title.isEmpty ? "图集" : title, ext: "jpg", title: "批量下载图集")
+    }
+
+    func downloadLivePhotos(urls: [String], title: String) {
+        let videos = urls.filter { !$0.isEmpty }
+        guard !videos.isEmpty else {
+            showToast("当前没有可下载的动图视频")
+            return
+        }
+        DownloadManager.shared.downloadBatch(
+            urls: videos,
+            baseTitle: "\(title.isEmpty ? "动图" : title)_动图",
+            ext: "mp4",
+            title: "批量下载实况动图"
+        )
+    }
+
+    /// 下载图片与配对视频后，作为真正的 Live Photo 写入相册
+    func saveLivePhotosToAlbum(pairs: [LivePhotoItem]) {
+        let valid = pairs.filter { !($0.image ?? "").isEmpty && !($0.video ?? "").isEmpty }
+        guard !valid.isEmpty else {
+            showToast("没有可保存的实况动图")
+            return
+        }
+        showToast("正在保存 \(valid.count) 组实况到相册…")
+        Task {
+            var saved = 0
+            for pair in valid {
+                guard let image = pair.image, let video = pair.video else { continue }
+                do {
+                    let imageFile = try await DownloadManager.tempDownload(image, ext: "jpg")
+                    let videoFile = try await DownloadManager.tempDownload(video, ext: "mp4")
+                    try await PhotoSaver.saveLivePhoto(image: imageFile, video: videoFile)
+                    try? FileManager.default.removeItem(at: imageFile)
+                    try? FileManager.default.removeItem(at: videoFile)
+                    saved += 1
+                } catch {
+                    continue
+                }
+            }
+            showToast(saved > 0 ? "已保存 \(saved) 组实况动图到相册" : "保存失败，请检查相册权限")
+        }
     }
 
     func downloadAudio(url: String, title: String) {

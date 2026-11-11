@@ -187,6 +187,23 @@ final class DownloadManager: NSObject, ObservableObject {
         return out
     }
 
+    /// 下载到临时目录（用于一次性任务，如存实况到相册）
+    static func tempDownload(_ urlString: String, ext: String) async throws -> URL {
+        guard let url = URL(string: urlString) else { throw APIError.message("地址无效") }
+        var req = URLRequest(url: url)
+        req.setValue(APIClient.mediaUserAgent, forHTTPHeaderField: "User-Agent")
+        req.timeoutInterval = 60
+        let (tmp, response) = try await URLSession.shared.download(for: req)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw APIError.message("下载失败")
+        }
+        let dest = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vp_\(UUID().uuidString).\(ext)")
+        try? FileManager.default.removeItem(at: dest)
+        try FileManager.default.moveItem(at: tmp, to: dest)
+        return dest
+    }
+
     static func savedFiles() -> [URL] {
         (try? FileManager.default.contentsOfDirectory(at: downloadDir, includingPropertiesForKeys: [.fileSizeKey, .creationDateKey]))?
             .sorted { a, b in
@@ -428,6 +445,26 @@ enum PhotoSaver {
             }
         } catch {
             throw APIError.message("保存到相册失败：\(error.localizedDescription)")
+        }
+    }
+
+    /// 保存一组实况照片（静态图 + 配对视频）为真正的 Live Photo
+    static func saveLivePhoto(image: URL, video: URL, creationDate: Date? = nil) async throws {
+        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        guard status == .authorized || status == .limited else {
+            throw APIError.message("未获得相册写入权限，请在设置中允许访问相册")
+        }
+        do {
+            try await PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetCreationRequest.forAsset()
+                request.creationDate = creationDate ?? Date()
+                request.addResource(with: .photo, fileURL: image, options: nil)
+                let options = PHAssetResourceCreationOptions()
+                options.shouldMoveFile = false
+                request.addResource(with: .pairedVideo, fileURL: video, options: options)
+            }
+        } catch {
+            throw APIError.message("保存实况失败：\(error.localizedDescription)")
         }
     }
 }

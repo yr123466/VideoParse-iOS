@@ -70,26 +70,116 @@ struct VideoPlayerBox: View {
     }
 }
 
-// MARK: - 图片翻页
+// MARK: - 动图（实况）循环播放
+
+final class LoopingPlayerUIView: UIView {
+    override class var layerClass: AnyClass { AVPlayerLayer.self }
+    private var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    private var player: AVQueuePlayer?
+    private var looper: AVPlayerLooper?
+
+    func play(url: URL) {
+        stop()
+        let item = AVPlayerItem(url: url)
+        let queue = AVQueuePlayer()
+        queue.isMuted = true
+        queue.actionAtItemEnd = .advance
+        looper = AVPlayerLooper(player: queue, templateItem: item)
+        playerLayer.player = queue
+        playerLayer.videoGravity = .resizeAspectFill
+        playerLayer.masksToBounds = true
+        queue.play()
+        player = queue
+    }
+
+    func stop() {
+        player?.pause()
+        looper?.disableLooping()
+        looper = nil
+        playerLayer.player = nil
+        player = nil
+    }
+}
+
+/// 静音循环播放的实况动图（不拦截手势，交给外层翻页/全屏）
+struct LoopingVideoView: UIViewRepresentable {
+    let url: String
+
+    func makeUIView(context: Context) -> LoopingPlayerUIView {
+        LoopingPlayerUIView()
+    }
+
+    func updateUIView(_ uiView: LoopingPlayerUIView, context: Context) {
+        guard let link = URL(string: url) else { return }
+        if context.coordinator.current != url {
+            context.coordinator.current = url
+            uiView.play(url: link)
+        }
+    }
+
+    static func dismantleUIView(_ uiView: LoopingPlayerUIView, coordinator: Coordinator) {
+        uiView.stop()
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator {
+        var current: String?
+    }
+}
+
+// MARK: - 图片翻页（支持实况动图）
 
 struct ImagePager: View {
     let images: [String]
+    var liveVideos: [String] = []
     var aspect: CGFloat = 0.82
     var corner: CGFloat = 14
 
     @State private var index = 0
     @State private var showViewer = false
 
+    private func liveURL(at offset: Int) -> String? {
+        guard offset >= 0, offset < liveVideos.count else { return nil }
+        let link = liveVideos[offset]
+        return link.isEmpty ? nil : link
+    }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $index) {
                 ForEach(Array(images.enumerated()), id: \.offset) { offset, link in
-                    RemoteImage(url: link, contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                        .contentShape(Rectangle())
-                        .onTapGesture { showViewer = true }
-                        .tag(offset)
+                    ZStack {
+                        RemoteImage(url: link, contentMode: .fill)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipped()
+
+                        if offset == index, let video = liveURL(at: offset) {
+                            LoopingVideoView(url: video)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .overlay(alignment: .topLeading) {
+                        if liveURL(at: offset) != nil {
+                            HStack(spacing: 3) {
+                                Image(systemName: "livephoto.play")
+                                    .font(.system(size: 9, weight: .bold))
+                                Text("动图")
+                                    .font(.system(size: 9.5, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Color.black.opacity(0.45))
+                            .clipShape(Capsule())
+                            .padding(9)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { showViewer = true }
+                    .tag(offset)
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
@@ -109,15 +199,22 @@ struct ImagePager: View {
         .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
         .fullScreenCover(isPresented: $showViewer) {
-            ImageViewer(images: images, startIndex: index)
+            ImageViewer(images: images, liveVideos: liveVideos, startIndex: index)
         }
     }
 }
 
 struct ImageViewer: View {
     let images: [String]
+    var liveVideos: [String] = []
     @State var startIndex: Int
     @Environment(\.dismiss) private var dismiss
+
+    private func liveURL(at offset: Int) -> String? {
+        guard offset >= 0, offset < liveVideos.count else { return nil }
+        let link = liveVideos[offset]
+        return link.isEmpty ? nil : link
+    }
 
     var body: some View {
         ZStack {
@@ -125,8 +222,15 @@ struct ImageViewer: View {
 
             TabView(selection: $startIndex) {
                 ForEach(Array(images.enumerated()), id: \.offset) { offset, link in
-                    ZoomableImage(url: link)
-                        .tag(offset)
+                    ZStack {
+                        if let video = liveURL(at: offset) {
+                            LoopingVideoView(url: video)
+                                .allowsHitTesting(false)
+                        } else {
+                            ZoomableImage(url: link)
+                        }
+                    }
+                    .tag(offset)
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
@@ -136,6 +240,15 @@ struct ImageViewer: View {
                     Text("\(startIndex + 1) / \(images.count)")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.white)
+                    if liveURL(at: startIndex) != nil {
+                        Text("动图")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Color.white.opacity(0.20))
+                            .clipShape(Capsule())
+                    }
                     Spacer()
                     Button {
                         dismiss()

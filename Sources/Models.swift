@@ -149,6 +149,11 @@ struct LivePhotoItem {
         image = json.str("image")
         video = json.str("video")
     }
+
+    init(image: String?, video: String?) {
+        self.image = image
+        self.video = video
+    }
 }
 
 struct StatisticsInfo {
@@ -273,6 +278,27 @@ struct ParseData {
 
     var liveVideoUrl: String? {
         livePhoto.compactMap { $0.video }.first
+    }
+
+    /// 是否实况/动图（type=live 且带配对视频）
+    var isLive: Bool {
+        type == "live" && livePhoto.contains { !($0.video ?? "").isEmpty }
+    }
+
+    /// 与 extractAllImages() 的下标一一对齐的动图视频地址（无配对处为空串）
+    func alignedLiveVideos() -> [String] {
+        let imgs = extractAllImages()
+        return imgs.map { img in
+            livePhoto.first(where: { $0.image == img })?.video ?? ""
+        }
+    }
+
+    /// 去重后的动图视频列表
+    func liveVideoList() -> [String] {
+        var seen = Set<String>()
+        return livePhoto.compactMap { $0.video }
+            .filter { !$0.isEmpty }
+            .filter { seen.insert($0).inserted }
     }
 
     var primaryVideoUrl: String {
@@ -519,6 +545,8 @@ struct HistoryItem: Codable, Identifiable {
     var sizeLabel: String = ""
     var quality: String = ""
     var images: [String] = []
+    /// 与 images 下标对齐的动图视频（实况内容）
+    var liveVideos: [String]? = nil
     var isFavorite: Bool = false
     var timestamp: Date = Date()
 
@@ -536,12 +564,27 @@ struct HistoryItem: Codable, Identifiable {
             || (videoUrl.isEmpty && !coverUrl.isEmpty)
     }
 
+    var isLiveMedia: Bool {
+        mediaType == "live" || (liveVideos?.contains { !$0.isEmpty } ?? false)
+    }
+
+    var liveVideoList: [String] {
+        (liveVideos ?? []).filter { !$0.isEmpty }
+    }
+
+    func liveVideo(at index: Int) -> String? {
+        guard let list = liveVideos, index >= 0, index < list.count else { return nil }
+        let link = list[index]
+        return link.isEmpty ? nil : link
+    }
+
     var displayTitle: String { title.isEmpty ? "未命名作品" : title }
     var displayAuthor: String { authorName.isEmpty ? "佚名" : authorName }
     var platformName: String { SupportedPlatforms.name(platform) }
 
     var typeLabel: String {
         if mediaType == "audio" { return "MP3" }
+        if mediaType == "live" || isLiveMedia { return "动图(\(max(imageList.count, 1)))" }
         if isImageMedia { return "图集(\(imageList.count))" }
         return "视频"
     }

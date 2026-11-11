@@ -339,7 +339,7 @@ struct LibraryDetailSheet: View {
                 )
             }
         } else if item.isImageMedia && !item.imageList.isEmpty {
-            ImagePager(images: item.imageList, aspect: 0.82)
+            ImagePager(images: item.imageList, liveVideos: item.liveVideos ?? [], aspect: 0.82)
         } else if !item.videoUrl.isEmpty {
             VideoPlayerBox(url: item.videoUrl, cover: item.coverUrl)
         } else if !item.coverUrl.isEmpty {
@@ -449,19 +449,43 @@ struct LibraryDetailSheet: View {
                         store.loadHistoryItem(item)
                     }
                 }
+
+                if !livePairs.isEmpty {
+                    HStack(spacing: 8) {
+                        smallButton(icon: "livephoto", title: "存实况到相册") {
+                            store.saveLivePhotosToAlbum(pairs: livePairs)
+                        }
+                        smallButton(icon: "square.and.arrow.down", title: "下载动图") {
+                            store.downloadLivePhotos(urls: item.liveVideoList, title: item.displayTitle)
+                        }
+                    }
+                }
             }
         }
     }
 
     private var downloadTitle: String {
         if item.mediaType == "audio" { return "下载音频" }
+        if item.isLiveMedia { return "下载动图" }
         if item.isImageMedia { return "下载全部图片" }
         return "下载无水印视频"
+    }
+
+    private var livePairs: [LivePhotoItem] {
+        let imgs = item.imageList
+        let vids = item.liveVideos ?? []
+        var out: [LivePhotoItem] = []
+        for (index, image) in imgs.enumerated() where index < vids.count && !vids[index].isEmpty {
+            out.append(LivePhotoItem(image: image, video: vids[index]))
+        }
+        return out
     }
 
     private func download() {
         if item.mediaType == "audio" {
             store.downloadAudio(url: item.audioUrl, title: item.displayTitle)
+        } else if item.isLiveMedia {
+            store.downloadLivePhotos(urls: item.liveVideoList, title: item.displayTitle)
         } else if item.isImageMedia {
             store.downloadAllImages(urls: item.imageList, title: item.displayTitle)
         } else {

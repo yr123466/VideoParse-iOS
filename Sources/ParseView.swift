@@ -462,7 +462,7 @@ struct ResultCard: View {
                 header
 
                 if isImagePost {
-                    ImagePager(images: images, aspect: imageAspect)
+                    ImagePager(images: images, liveVideos: data.alignedLiveVideos(), aspect: imageAspect)
                 } else if isAudioOnly {
                     AudioPlayCard(
                         title: data.getEffectiveMusic()?.title ?? data.title ?? "背景原声音乐",
@@ -501,7 +501,11 @@ struct ResultCard: View {
     private var header: some View {
         HStack(spacing: 6) {
             PlatformBadge(platform: response.platform ?? SupportedPlatforms.detect(data.url ?? ""))
-            InfoChip(icon: "film", text: data.primaryQuality)
+            if data.isLive {
+                InfoChip(icon: "livephoto.play", text: "实况动图", tint: Theme.coral)
+            } else {
+                InfoChip(icon: "film", text: data.primaryQuality)
+            }
             if !Fmt.duration(data.duration).isEmpty {
                 InfoChip(icon: "clock", text: Fmt.duration(data.duration))
             }
@@ -560,8 +564,16 @@ struct ResultCard: View {
         let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
         return LazyVGrid(columns: columns, spacing: 8) {
             if isImagePost {
-                ActionTile(icon: "square.and.arrow.down", title: "下载全部", subtitle: "\(images.count) 张", tint: Theme.primary) {
+                ActionTile(icon: "square.and.arrow.down", title: "下载图片", subtitle: "\(images.count) 张", tint: Theme.primary) {
                     store.downloadAllImages(urls: images, title: data.title ?? "图集")
+                }
+                if data.isLive {
+                    ActionTile(icon: "livephoto.play", title: "下载动图", subtitle: "\(data.liveVideoList().count) 个", tint: Theme.coral) {
+                        store.downloadLivePhotos(urls: data.liveVideoList(), title: data.title ?? "动图")
+                    }
+                    ActionTile(icon: "livephoto", title: "存实况", subtitle: "到相册", tint: Theme.green) {
+                        store.saveLivePhotosToAlbum(pairs: data.livePhoto)
+                    }
                 }
                 ActionTile(icon: "doc.on.doc", title: "复制图集", subtitle: "全部直链", tint: Theme.indigo) {
                     Clipboard.copy(images.joined(separator: "\n"))
