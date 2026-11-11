@@ -107,23 +107,8 @@ struct ParseView: View {
             }
             .padding(.top, 2)
         }
-        .padding(16)
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                Theme.heroGradient
-                Circle()
-                    .fill(Color.white.opacity(0.13))
-                    .frame(width: 170, height: 170)
-                    .offset(x: 125, y: -62)
-                Circle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 120, height: 120)
-                    .offset(x: 78, y: 58)
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: Theme.indigo.opacity(0.25), radius: 14, x: 0, y: 7)
     }
 
     private func heroStat(value: String, label: String) -> some View {
@@ -133,11 +118,11 @@ struct ParseView: View {
                 .foregroundColor(.white)
             Text(label)
                 .font(.system(size: 9))
-                .foregroundColor(.white.opacity(0.78))
+                .foregroundColor(.white.opacity(0.86))
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 5)
-        .background(Color.white.opacity(0.15))
+        .background(Color.white.opacity(0.20))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 

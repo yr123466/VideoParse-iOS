@@ -70,31 +70,24 @@ struct PlatformsView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
-                Text("全网主流媒体平台聚合支持")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer(minLength: 0)
-                Text("\(SupportedPlatforms.display.count)+")
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundColor(.white)
+        CardBox(padding: 16, fill: .init(Theme.primaryGradient)) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 7) {
+                    Text("全网主流媒体平台聚合支持")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Spacer(minLength: 0)
+                    Text("\(SupportedPlatforms.display.count)+")
+                        .font(.system(size: 15, weight: .black))
+                        .foregroundColor(.white)
+                }
+                Text("已集成 \(SupportedPlatforms.display.count)+ 媒体与短视频平台，自动识别去水印并提取原画直链")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.92))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text("已集成 \(SupportedPlatforms.display.count)+ 媒体与短视频平台，自动识别去水印并提取原画直链")
-                .font(.system(size: 10.5))
-                .foregroundColor(.white.opacity(0.85))
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(15)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                LinearGradient(colors: [Color(hex: 0x4F46E5), Color(hex: 0x0EA5E9)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                Circle().fill(Color.white.opacity(0.12)).frame(width: 140, height: 140).offset(x: 130, y: -50)
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Theme.indigo.opacity(0.22), radius: 12, y: 6)
+        .padding(.top, 2)
     }
 
     private func test(_ platform: PlatformInfo) {
@@ -116,66 +109,67 @@ struct PlatformCard: View {
     let onTest: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(platform.emoji)
-                    .font(.system(size: 17))
-                    .frame(width: 34, height: 34)
-                    .background(platform.color.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        CardBox(padding: 12, fill: .init(AnyShapeStyle(platform.color.opacity(0.06)))) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(platform.emoji)
+                        .font(.system(size: 17))
+                        .frame(width: 34, height: 34)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(platform.name)
-                        .font(.system(size: 12.5, weight: .bold))
-                        .foregroundColor(Theme.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                    Text(platform.enName)
-                        .font(.system(size: 8.5))
-                        .foregroundColor(Theme.textTertiary)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(platform.name)
+                            .font(.system(size: 12.5, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Text(platform.enName)
+                            .font(.system(size: 8.5))
+                            .foregroundColor(.white.opacity(0.85))
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+
+                Text(platform.formats.prefix(3).joined(separator: " · "))
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.88))
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 6) {
+                    Button(action: onTest) {
+                        Text("测试")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.20))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Spacer(minLength: 0)
+
+                    Button(action: onOpen) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white.opacity(0.85))
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
-
-            Text(platform.formats.prefix(3).joined(separator: " · "))
-                .font(.system(size: 9))
-                .foregroundColor(Theme.textSecondary)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 6) {
-                Button(action: onTest) {
-                    Text("测试")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(platform.color)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(platform.color.opacity(0.10))
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                Spacer(minLength: 0)
-
-                Button(action: onOpen) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(Theme.textTertiary)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 6)
         }
-        .padding(11)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.vertical, 5)
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Theme.stroke, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(platform.color.opacity(0.35), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.03), radius: 7, y: 3)
+        .shadow(color: platform.color.opacity(0.12), radius: 10, y: 4)
         .contentShape(Rectangle())
         .onTapGesture(perform: onOpen)
     }

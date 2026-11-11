@@ -13,8 +13,9 @@ struct RootView: View {
 
             VStack(spacing: 0) {
                 topBar
-
+                Spacer()
                 content
+                floatingTabBar
             }
 
             // 右上角：赞赏按钮（浸出顶部，悬浮）
@@ -174,6 +175,7 @@ struct RootView: View {
         .animation(nil, value: store.selectedTab)
     }
 
+    @ViewBuilder
     private var floatingTabBar: some View {
         FloatingTabBar(selected: $store.selectedTab)
     }

@@ -55,41 +55,45 @@ struct LibraryView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Text("素材库")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(Theme.textPrimary)
-                Text("\(store.history.count)")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2.5)
-                    .background(Theme.primary)
-                    .clipShape(Capsule())
-                Spacer()
-                if !store.history.isEmpty {
-                    Button {
-                        store.clearHistory()
-                    } label: {
-                        HStack(spacing: 3) {
-                            Image(systemName: "trash").font(.system(size: 9, weight: .bold))
-                            Text("清空").font(.system(size: 10.5, weight: .semibold))
-                        }
-                        .foregroundColor(Theme.coral)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 6)
-                        .background(Theme.coral.opacity(0.09))
+        CardBox(padding: 15) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text("素材库")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("\(store.history.count)")
+                        .font(.system(size: 9.5, weight: .black))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2.5)
+                        .background(Color.white.opacity(0.30))
                         .clipShape(Capsule())
+                    Spacer()
+                    if !store.history.isEmpty {
+                        Button {
+                            store.clearHistory()
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "trash").font(.system(size: 9, weight: .bold))
+                                Text("清空").font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundColor(Theme.coral)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(Color.white.opacity(0.20))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
+                Text("一键直放视频 · 图集缩放预览 · 背景音乐收藏")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.90))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text("一键直放视频 · 图集缩放预览 · 背景音乐收藏")
-                .font(.system(size: 10.5))
-                .foregroundColor(Theme.textSecondary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.top, 2)
     }
 
     private var tabBar: some View {
@@ -152,30 +156,29 @@ struct LibraryView: View {
                 }
                 Text("暂无匹配的媒体素材")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Theme.textPrimary)
+                    .foregroundColor(.white)
                 Text("在解析界面解析视频、图集或下载音乐后即可在此集中查看")
-                    .font(.system(size: 10.5))
-                    .foregroundColor(Theme.textSecondary)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.88))
                     .multilineTextAlignment(.center)
                 Button {
-                    store.selectedTab = 0
+                    store.libraryTab = 0
                 } label: {
                     Text("去解析一条")
-                        .font(.system(size: 11.5, weight: .semibold))
-                        .foregroundColor(Theme.primary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Theme.primary.opacity(0.10))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.30))
                         .clipShape(Capsule())
                 }
                 .buttonStyle(PlainButtonStyle())
-                .padding(.top, 2)
+                .padding(.top, 3)
             }
             .frame(maxWidth: .infinity)
+            .padding(.top, 6)
         }
-        .padding(.top, 10)
     }
-}
 
 // MARK: - 素材行
 

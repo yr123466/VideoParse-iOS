@@ -452,7 +452,7 @@ struct SettingsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             ZStack {
-                LinearGradient(colors: [Color(hex: 0xD97706), Color(hex: 0xEF4444)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                Theme.coralGradient
                 Circle().fill(Color.white.opacity(0.12)).frame(width: 130, height: 130).offset(x: 120, y: -55)
             }
         )
