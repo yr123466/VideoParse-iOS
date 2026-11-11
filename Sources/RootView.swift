@@ -180,4 +180,64 @@ struct RootView: View {
         FloatingTabBar(selected: $store.selectedTab)
     }
 
+
+struct FloatingTabBar: View {
+    @Binding var selected: Int
+
+    private let tabs: [(index: Int, icon: String, title: String)] = [
+        (0, "bolt.fill", "解析"),
+        (1, "photo.on.rectangle.angled", "素材库"),
+        (2, "square.grid.2x2.fill", "平台"),
+        (3, "gearshape.fill", "设置"),
+    ]
+
+    var body: some View {
+        ZStack {
+            // 浅色半透明胶囊背景
+            Capsule()
+                .fill(Color.white.opacity(0.82))
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.70), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.12), radius: 18, y: 6)
+
+            HStack(spacing: 6) {
+                ForEach(tabs, id: \.index) { tab in
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            selected = tab.index
+                        }
+                    } label: {
+                        VStack(spacing: 5) {
+                            Image(systemName: tab.icon)
+                                .font(.system(size: 15, weight: .medium))
+                            Text(tab.title)
+                                .font(.system(size: 10.5, weight: .medium))
+                        }
+                        .foregroundColor(selected == tab.index ? Theme.primary : Color(hex: 0x64748B))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(
+                            ZStack {
+                                if selected == tab.index {
+                                    Capsule()
+                                        .fill(Theme.primary.opacity(0.13))
+                                        .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 2)
+                                }
+                            }
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+        }
+        .frame(height: 52)
+        .padding(.horizontal, 28)
+        .padding(.bottom, 16)
+    }
+}
+
 }
