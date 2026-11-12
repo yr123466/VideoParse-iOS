@@ -165,6 +165,7 @@ struct RootView: View {
     private var floatingTabBar: some View {
         FloatingTabBar(selected: $store.selectedTab)
     }
+}
 
 
 struct FloatingTabBar: View {
@@ -265,6 +266,4 @@ private extension View {
             }
             .shadow(color: Color.black.opacity(0.18), radius: 22, y: 10)
     }
-}
-
 }
