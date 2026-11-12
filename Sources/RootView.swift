@@ -256,10 +256,7 @@ private struct TabBarButton: View {
 private extension View {
     func glassDock(cornerRadius: CGFloat) -> some View {
         self
-            .background {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.glassEffect(.regular))
-            }
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.30), lineWidth: 0.8)
