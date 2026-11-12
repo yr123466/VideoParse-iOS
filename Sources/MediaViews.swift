@@ -291,34 +291,40 @@ struct ImmersiveVideoPlayer: View {
     @State private var isSeeking = false
     @State private var timeObserver: Any?
     @State private var hideTask: Task<Void, Never>?
+    @State private var dragY: CGFloat = 0
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            PlayerSurface(player: player)
-                .ignoresSafeArea()
-                .onTapGesture {
-                    if controlsVisible {
-                        togglePlay()
-                    } else {
-                        revealControls()
+            ZStack {
+                PlayerSurface(player: player)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        if controlsVisible {
+                            togglePlay()
+                        } else {
+                            revealControls()
+                        }
                     }
+
+                if !isPlaying {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 44, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.4), radius: 12)
+                        .allowsHitTesting(false)
+                        .opacity(controlsVisible ? 1 : 0)
                 }
 
-            if !isPlaying {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 44, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.85))
-                    .shadow(color: .black.opacity(0.4), radius: 12)
-                    .allowsHitTesting(false)
-                    .opacity(controlsVisible ? 1 : 0)
+                if controlsVisible {
+                    controls
+                        .transition(.opacity)
+                }
             }
-
-            if controlsVisible {
-                controls
-                    .transition(.opacity)
-            }
+            .offset(y: dragY)
+            .scaleEffect(max(0.82, 1 - dragY / 2600))
+            .simultaneousGesture(dismissGesture)
         }
         .statusBarHidden(true)
         .overlay(alignment: .bottom) {
@@ -345,6 +351,32 @@ struct ImmersiveVideoPlayer: View {
             UIApplication.shared.isIdleTimerDisabled = false
         }
         .animation(.easeInOut(duration: 0.2), value: controlsVisible)
+    }
+
+    // MARK: 全面屏手势：下拉关闭
+
+    private var dismissGesture: some Gesture {
+        DragGesture(minimumDistance: 16)
+            .onChanged { value in
+                // 只接管明显的纵向下拉，横向拖动交给进度条
+                guard abs(value.translation.height) > abs(value.translation.width) * 1.2 else { return }
+                let h = value.translation.height
+                dragY = h > 0 ? h : h / 4
+            }
+            .onEnded { value in
+                let predicted = value.predictedEndTranslation.height
+                guard abs(value.translation.height) > abs(value.translation.width) * 1.2 else {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { dragY = 0 }
+                    return
+                }
+                if dragY > 120 || predicted > 300 {
+                    player.pause()
+                    UIApplication.shared.isIdleTimerDisabled = false
+                    dismiss()
+                } else {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { dragY = 0 }
+                }
+            }
     }
 
     // MARK: 控件

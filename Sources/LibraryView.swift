@@ -301,33 +301,56 @@ struct LibraryDetailSheet: View {
     let item: HistoryItem
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 13) {
-                media
-                infoBlock
-                actions
-                Color.clear.frame(height: 10)
+        VStack(spacing: 0) {
+            header
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 13) {
+                    media
+                    infoBlock
+                    actions
+                    Color.clear.frame(height: 10)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 24)
         }
         .background(Color.clear)
-        .overlay(alignment: .topTrailing) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(Theme.textSecondary)
-                    .frame(width: 30, height: 30)
-                    .background(Theme.surfaceAlt)
-                    .clipShape(Circle())
+    }
+
+    /// 顶部栏：拖动条 + 标题 + 关闭，独立于媒体区，避免与播放器全屏按钮叠加
+    private var header: some View {
+        ZStack {
+            VStack(spacing: 8) {
+                Capsule()
+                    .fill(Theme.textTertiary.opacity(0.35))
+                    .frame(width: 34, height: 4)
+                    .padding(.top, 8)
+
+                Text(item.displayTitle)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Theme.textPrimary)
+                    .lineLimit(1)
+                    .padding(.horizontal, 52)
             }
-            .buttonStyle(PlainButtonStyle())
-            .padding(.trailing, 14)
-            .padding(.top, 12)
+
+            HStack {
+                Spacer()
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(width: 30, height: 30)
+                        .background(Theme.surfaceAlt)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.trailing, 14)
+            }
         }
+        .padding(.bottom, 8)
     }
 
     @ViewBuilder
