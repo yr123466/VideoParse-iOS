@@ -161,19 +161,6 @@ struct RootView: View {
                 .allowsHitTesting(store.selectedTab == 3)
         }
         .animation(nil, value: store.selectedTab)
-        // 页面左右轻扫也能切 Tab（与底栏拖动呼应）
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 28)
-                .onEnded { value in
-                    guard abs(value.translation.width) > abs(value.translation.height) * 1.6 else { return }
-                    let delta = value.translation.width < 0 ? 1 : -1
-                    let next = min(max(store.selectedTab + delta, 0), 3)
-                    guard next != store.selectedTab else { return }
-                    withAnimation(.spring(response: 0.34, dampingFraction: 0.8)) {
-                        store.selectedTab = next
-                    }
-                }
-        )
     }
 
     @ViewBuilder
@@ -194,28 +181,25 @@ struct FloatingTabBar: View {
         TabSpec(index: 3, icon: "gearshape.fill", title: "设置"),
     ]
 
-    /// 手指拖动产生的额外位移（点），叠加在选中项位置上
     @State private var dragX: CGFloat = 0
     @State private var isDragging = false
+    /// 按住不放：胶囊放大并轻微上浮，模拟提起来
+    @State private var isPressed = false
 
     var body: some View {
         GeometryReader { geo in
-            let slot = geo.size.width / CGFloat(Self.tabCount)
+            let slot = max(geo.size.width / CGFloat(Self.tabCount), 1)
             let baseX = (CGFloat(selected) + 0.5) * slot
-
-            // 拖动时按位移推算出「当前指向的项」，胶囊跟着手指走
-            let targetIndex = index(at: baseX + dragX, slot: slot)
-            let shownX = isDragging
-                ? clampX(baseX + dragX, slot: slot)
-                : baseX
+            let activeIndex = isDragging ? index(at: baseX + dragX, slot: slot) : selected
+            let shownX = isDragging ? clampX(baseX + dragX, slot: slot) : baseX
 
             ZStack {
-                pillLayer(slot: slot, x: shownX, stretch: stretchFactor(slot: slot))
-                itemsLayer(slot: slot, activeIndex: isDragging ? targetIndex : selected)
+                pillLayer(slot: slot, x: shownX, activeIndex: activeIndex)
+                itemsLayer(slot: slot, activeIndex: activeIndex)
             }
             .frame(height: 50)
             .contentShape(Rectangle())
-            .gesture(dragGesture(slot: slot))
+            .simultaneousGesture(pressDrag(slot: slot))
         }
         .padding(7)
         .padding(.horizontal, 5)
@@ -227,23 +211,29 @@ struct FloatingTabBar: View {
 
     // MARK: 图层
 
-    private func pillLayer(slot: CGFloat, x: CGFloat, stretch: CGFloat) -> some View {
-        Capsule()
-            .fill(Color.white.opacity(0.16))
+    private func pillLayer(slot: CGFloat, x: CGFloat, activeIndex: Int) -> some View {
+        let lifted = isDragging || isPressed
+        let stretch = stretchFactor(slot: slot)
+        return Capsule()
+            .fill(Color.white.opacity(lifted ? 0.20 : 0.16))
             .glassEffect(.clear, in: Capsule())
-            .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
-            .frame(width: max(38, slot - 10 + stretch), height: 42)
-            .position(x: x, y: 25)
-            .animation(isDragging ? nil : .spring(response: 0.34, dampingFraction: 0.74), value: selected)
+            .shadow(color: .black.opacity(lifted ? 0.16 : 0.08), radius: lifted ? 10 : 3, y: lifted ? 5 : 1)
+            .frame(width: max(38, slot - 10 + stretch), height: lifted ? 46 : 42)
+            .scaleEffect(lifted ? 1.0 : 0.97)
+            .position(x: x, y: lifted ? 23 : 25)
+            .animation(isDragging ? nil : .spring(response: 0.32, dampingFraction: 0.66), value: activeIndex)
+            .animation(.spring(response: 0.26, dampingFraction: 0.70), value: isPressed)
     }
 
     private func itemsLayer(slot: CGFloat, activeIndex: Int) -> some View {
         HStack(spacing: 0) {
             ForEach(Self.tabs) { tab in
+                let isActive = activeIndex == tab.index
                 TabBarButton(
                     icon: tab.icon,
                     title: tab.title,
-                    isSelected: activeIndex == tab.index
+                    isSelected: isActive,
+                    isLifted: isActive && (isDragging || isPressed)
                 ) {
                     guard selected != tab.index else { return }
                     withAnimation(.spring(response: 0.34, dampingFraction: 0.74)) {
@@ -255,21 +245,33 @@ struct FloatingTabBar: View {
         }
     }
 
-    // MARK: 手势
+    // MARK: 手势：按住立刻放大，随后可拖动
 
-    private func dragGesture(slot: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 6)
+    private func pressDrag(slot: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
             .onChanged { value in
-                isDragging = true
-                dragX = value.translation.width
+                if !isPressed {
+                    withAnimation(.spring(response: 0.24, dampingFraction: 0.62)) {
+                        isPressed = true
+                    }
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                }
+                if abs(value.translation.width) > 4 {
+                    isDragging = true
+                    dragX = value.translation.width
+                }
             }
             .onEnded { value in
                 let from = (CGFloat(selected) + 0.5) * slot
                 let predicted = value.predictedEndTranslation.width
-                // 用预测位移做甩动判定，轻扫也能切页
-                let landing = index(at: from + predicted * 0.8, slot: slot)
+                let dragged = abs(value.translation.width) > 6
+                let landing = dragged ? index(at: from + predicted * 0.8, slot: slot) : selected
+
                 isDragging = false
                 dragX = 0
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.66)) {
+                    isPressed = false
+                }
                 if landing != selected {
                     withAnimation(.spring(response: 0.34, dampingFraction: 0.74)) {
                         selected = landing
@@ -291,7 +293,6 @@ struct FloatingTabBar: View {
         return min(max(x, half), slot * CGFloat(Self.tabCount) - half)
     }
 
-    /// 离最近槽位越远，胶囊横向拉伸越多，产生液体形变
     private func stretchFactor(slot: CGFloat) -> CGFloat {
         guard isDragging else { return 0 }
         let x = (CGFloat(selected) + 0.5) * slot + dragX
@@ -311,6 +312,7 @@ private struct TabBarButton: View {
     let icon: String
     let title: String
     let isSelected: Bool
+    var isLifted: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -327,6 +329,9 @@ private struct TabBarButton: View {
                 .font(.system(size: 10, weight: .semibold))
         }
         .foregroundColor(isSelected ? Theme.primary : Color(hex: 0x8E98AB))
+        .scaleEffect(isLifted ? 1.16 : 1.0, anchor: .center)
+        .offset(y: isLifted ? -2 : 0)
+        .animation(.spring(response: 0.26, dampingFraction: 0.66), value: isLifted)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 9)
         .contentShape(Rectangle())
