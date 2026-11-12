@@ -57,7 +57,7 @@ struct PlatformsView: View {
             }
             .padding(.horizontal, 15)
             .padding(.top, 13)
-            .padding(.bottom, 28)
+            .padding(.bottom, 96)
         }
         .background(Color.clear)
         .sheet(item: $detail) { platform in

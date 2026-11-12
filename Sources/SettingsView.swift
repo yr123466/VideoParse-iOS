@@ -25,7 +25,7 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 15)
             .padding(.top, 13)
-            .padding(.bottom, 30)
+            .padding(.bottom, 96)
         }
         .background(Color.clear)
         .onAppear {

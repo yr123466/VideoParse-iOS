@@ -45,7 +45,7 @@ struct LibraryView: View {
             }
             .padding(.horizontal, 15)
             .padding(.top, 13)
-            .padding(.bottom, 26)
+            .padding(.bottom, 96)
         }
         .background(Color.clear)
         .sheet(item: $detailItem) { item in

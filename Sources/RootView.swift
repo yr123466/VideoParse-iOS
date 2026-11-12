@@ -14,9 +14,11 @@ struct RootView: View {
             VStack(spacing: 0) {
                 topBar
                 content
+            }
+            // 底栏改为悬浮覆盖层：内容从其下方穿过，玻璃才能透出背后的滚动内容
+            .overlay(alignment: .bottom) {
                 floatingTabBar
             }
-
         }
         .ignoresSafeArea(edges: [.horizontal])
         .overlay {
@@ -245,9 +247,11 @@ private struct TabBarButton: View {
     }
 
     private var selectedPill: some View {
+        // 极淡白 + 玻璃：选中项有一点发亮的高光，但仍透出底色
         Capsule()
-            .fill(Color.white.opacity(0.45))
-            .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 1)
+            .fill(Color.white.opacity(0.16))
+            .glassEffect(.clear, in: Capsule())
+            .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
     }
 }
 
@@ -256,11 +260,12 @@ private struct TabBarButton: View {
 private extension View {
     func glassDock(cornerRadius: CGFloat) -> some View {
         self
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            // .clear 为 iOS 26 的「透明玻璃」变体：透出背后内容，仅做轻微磨砂与高光
+            .glassEffect(.clear, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.30), lineWidth: 0.8)
+                    .strokeBorder(Color.white.opacity(0.42), lineWidth: 0.7)
             }
-            .shadow(color: Color.black.opacity(0.18), radius: 22, y: 10)
+            .shadow(color: Color.black.opacity(0.22), radius: 20, y: 8)
     }
 }
