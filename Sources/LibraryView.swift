@@ -353,7 +353,6 @@ struct LibraryDetailSheet: View {
                     [URL(string: item.videoUrl)].compactMap { $0 }
                 },
                 onDownload: {
-                    store.dismissImmersivePlayer()
                     store.downloadVideo(url: item.videoUrl, title: item.displayTitle)
                 },
                 autoFullScreen: store.autoFullScreenPlayback

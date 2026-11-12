@@ -21,7 +21,6 @@ struct ParseView: View {
                 sampleRow
                 resultSection
                 recentSection
-                footerNote
             }
             .padding(.horizontal, 15)
             .padding(.top, 13)
@@ -458,7 +457,6 @@ struct ResultCard: View {
                             [URL(string: activeURL ?? "")].compactMap { $0 }
                         },
                         onDownload: {
-                            store.dismissImmersivePlayer()
                             store.downloadVideo(url: activeURL, title: data.title ?? "video")
                         },
                         autoFullScreen: store.autoFullScreenPlayback

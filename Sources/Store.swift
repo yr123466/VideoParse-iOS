@@ -619,10 +619,4 @@ final class AppStore: ObservableObject {
         parse(item.targetUrl)
     }
 
-    func dismissImmersivePlayer() {
-        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-            viewState.isImmersivePlayerOpen = false
-        }
-        dismissShare = false
-    }
-    }
+}

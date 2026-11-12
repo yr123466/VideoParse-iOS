@@ -83,13 +83,13 @@ struct VideoPlayerBox: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: primaryTap)
         .onDisappear(perform: teardown)
-        .onChange(of: showImmersive) { showing in
+        .onChange(of: showImmersive, perform: { showing in
             // 从全屏返回后继续卡片内播放
             if !showing && inlineActive {
                 player.play()
                 isPlaying = true
             }
-        }
+        })
         .fullScreenCover(isPresented: $showImmersive) {
             ImmersiveVideoPlayer(
                 url: url,
