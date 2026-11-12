@@ -185,25 +185,7 @@ struct FloatingTabBar: View {
                         selected = tab.index
                     }
                 } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 16, weight: .semibold))
-                            .symbolEffect(.bounce.byLayer, value: selected == tab.index)
-                        Text(tab.title)
-                            .font(.system(size: 10, weight: .semibold))
-                    }
-                    .foregroundColor(selected == tab.index ? Theme.primary : Color(hex: 0x8E98AB))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
-                    .padding(.horizontal, 2)
-                    .background {
-                        if selected == tab.index {
-                            Capsule()
-                                .fill(Color.white.opacity(0.45))
-                                .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 1)
-                        }
-                    }
-                    .contentShape(Rectangle())
+                    tabItem(icon: tab.icon, title: tab.title, isSelected: selected == tab.index)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -223,6 +205,29 @@ struct FloatingTabBar: View {
         .frame(height: 64)
         .padding(.horizontal, 22)
         .padding(.bottom, 12)
+    }
+
+    // 拆成独立子视图，避免 Xcode 26 类型检查超时
+    private func tabItem(icon: String, title: String, isSelected: Bool) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .symbolEffect(.bounce.byLayer, value: isSelected)
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+        }
+        .foregroundColor(isSelected ? Theme.primary : Color(hex: 0x8E98AB))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 9)
+        .padding(.horizontal, 2)
+        .background {
+            if isSelected {
+                Capsule()
+                    .fill(Color.white.opacity(0.45))
+                    .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 1)
+            }
+        }
+        .contentShape(Rectangle())
     }
 }
 
