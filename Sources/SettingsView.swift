@@ -304,6 +304,23 @@ struct SettingsView: View {
                 Divider().background(Theme.stroke)
 
                 Toggle(isOn: Binding(
+                    get: { store.autoFullScreenPlayback },
+                    set: { store.setAutoFullScreenPlayback($0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("点击视频直接全屏播放")
+                            .font(.system(size: 11.5, weight: .semibold))
+                            .foregroundColor(Theme.textPrimary)
+                        Text("关闭时在卡片内直接播放，点右上角才是全屏")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(Theme.textTertiary)
+                    }
+                }
+                .tint(Theme.primary)
+
+                Divider().background(Theme.stroke)
+
+                Toggle(isOn: Binding(
                     get: { store.preferHighQuality },
                     set: { store.setPreferHighQuality($0) }
                 )) {

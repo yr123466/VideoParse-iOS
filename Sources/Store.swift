@@ -46,6 +46,7 @@ final class AppStore: ObservableObject {
         static let customApiKey = "custom_api_key"
         static let autoClipboard = "auto_parse_clipboard"
         static let preferHighQuality = "prefer_high_quality"
+        static let autoFullScreenPlayback = "auto_full_screen_playback"
         static let disclaimerAccepted = "disclaimer_accepted"
         static let skippedUpdateVersion = "skipped_update_version"
     }
@@ -66,6 +67,8 @@ final class AppStore: ObservableObject {
     @Published var customApiKey: String = ""
     @Published var autoParseClipboard: Bool = true
     @Published var preferHighQuality: Bool = true
+    /// true = 点视频卡片直接全屏；false（默认）= 卡片内直接播放，可点右上角全屏
+    @Published var autoFullScreenPlayback: Bool = false
 
     @Published var disclaimerAccepted: Bool = false
     @Published var showDisclaimer: Bool = false
@@ -88,6 +91,7 @@ final class AppStore: ObservableObject {
         customApiKey = defaults.string(forKey: Keys.customApiKey) ?? ""
         autoParseClipboard = defaults.object(forKey: Keys.autoClipboard) as? Bool ?? true
         preferHighQuality = defaults.object(forKey: Keys.preferHighQuality) as? Bool ?? true
+        autoFullScreenPlayback = defaults.object(forKey: Keys.autoFullScreenPlayback) as? Bool ?? false
         disclaimerAccepted = defaults.bool(forKey: Keys.disclaimerAccepted)
         isFirstLaunchDisclaimer = !disclaimerAccepted
         showDisclaimer = !disclaimerAccepted
@@ -370,6 +374,11 @@ final class AppStore: ObservableObject {
     func setAutoClipboard(_ enabled: Bool) {
         autoParseClipboard = enabled
         defaults.set(enabled, forKey: Keys.autoClipboard)
+    }
+
+    func setAutoFullScreenPlayback(_ enabled: Bool) {
+        autoFullScreenPlayback = enabled
+        defaults.set(enabled, forKey: Keys.autoFullScreenPlayback)
     }
 
     func setPreferHighQuality(_ enabled: Bool) {

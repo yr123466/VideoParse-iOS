@@ -348,16 +348,15 @@ struct LibraryDetailSheet: View {
                 url: item.videoUrl,
                 cover: item.coverUrl,
                 title: item.displayTitle,
+                copyText: item.videoUrl,
+                shareItems: {
+                    [URL(string: item.videoUrl)].compactMap { $0 }
+                },
                 onDownload: {
+                    store.dismissImmersivePlayer()
                     store.downloadVideo(url: item.videoUrl, title: item.displayTitle)
                 },
-                onShare: {
-                    if let link = URL(string: item.videoUrl) { store.share([link]) }
-                },
-                onCopyText: {
-                    Clipboard.copy(item.videoUrl)
-                    store.showToast("无水印直链已复制")
-                }
+                autoFullScreen: store.autoFullScreenPlayback
             )
         } else if !item.coverUrl.isEmpty {
             RemoteImage(url: item.coverUrl, contentMode: .fit)

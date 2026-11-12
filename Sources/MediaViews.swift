@@ -11,56 +11,84 @@ struct VideoPlayerBox: View {
     var copyText: String = ""
     var shareItems: () -> [Any] = { [] }
     var onDownload: (() -> Void)? = nil
+    /// true = 点卡片直接全屏；false = 点卡片在卡片内直接播放
+    var autoFullScreen: Bool = false
 
     @State private var showImmersive = false
+    @State private var player = AVPlayer()
+    @State private var inlineActive = false
+    @State private var isPlaying = false
+    @State private var progress: Double = 0
+    @State private var duration: Double = 0
+    @State private var timeObserver: Any?
+    @State private var endObserver: NSObjectProtocol?
 
     var body: some View {
         ZStack {
             Color.black
-            RemoteImage(url: cover)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-            Color.black.opacity(0.25)
 
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.94))
-                    .frame(width: 62, height: 62)
-                    .shadow(color: .black.opacity(0.28), radius: 14, y: 5)
-                Image(systemName: "play.fill")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(Color(hex: 0x0369A1))
-                    .offset(x: 2)
+            if inlineActive {
+                PlayerSurface(player: player)
+            } else {
+                RemoteImage(url: cover)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                Color.black.opacity(0.25)
+
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.94))
+                        .frame(width: 62, height: 62)
+                        .shadow(color: .black.opacity(0.28), radius: 14, y: 5)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(hex: 0x0369A1))
+                        .offset(x: 2)
+                }
             }
 
-            VStack {
+            VStack(spacing: 0) {
                 HStack {
                     Spacer()
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(6)
-                        .background(Color.black.opacity(0.42))
-                        .clipShape(Circle())
+                    Button(action: openFullScreen) {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 26, height: 26)
+                            .background(Color.black.opacity(0.42))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .padding(9)
-                Spacer()
-                HStack(spacing: 5) {
-                    Image(systemName: "video.fill").font(.system(size: 9))
-                    Text("点击全屏沉浸播放")
-                        .font(.system(size: 10, weight: .medium))
-                    Spacer()
+
+                Spacer(minLength: 0)
+
+                if inlineActive {
+                    inlineControls
+                } else {
+                    HStack(spacing: 5) {
+                        Image(systemName: "video.fill").font(.system(size: 9))
+                        Text(autoFullScreen ? "点击全屏沉浸播放" : "点击播放 · 右上角全屏")
+                            .font(.system(size: 10, weight: .medium))
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundColor(.white.opacity(0.94))
+                    .padding(10)
                 }
-                .foregroundColor(.white.opacity(0.94))
-                .padding(10)
             }
         }
         .aspectRatio(aspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(Rectangle())
-        .onTapGesture {
-            guard !url.isEmpty else { return }
-            showImmersive = true
+        .onTapGesture(perform: primaryTap)
+        .onDisappear(perform: teardown)
+        .onChange(of: showImmersive) { showing in
+            // 从全屏返回后继续卡片内播放
+            if !showing && inlineActive {
+                player.play()
+                isPlaying = true
+            }
         }
         .fullScreenCover(isPresented: $showImmersive) {
             ImmersiveVideoPlayer(
@@ -71,6 +99,147 @@ struct VideoPlayerBox: View {
                 shareItems: shareItems,
                 onDownload: onDownload
             )
+        }
+    }
+
+    // MARK: 卡片内控制条
+
+    private var inlineControls: some View {
+        VStack(spacing: 5) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.28)).frame(height: 2.5)
+                    Capsule()
+                        .fill(Color.white)
+                        .frame(width: max(0, geo.size.width * progress), height: 2.5)
+                }
+                .frame(maxHeight: .infinity, alignment: .center)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            let ratio = min(max(value.location.x / max(geo.size.width, 1), 0), 1)
+                            progress = ratio
+                        }
+                        .onEnded { _ in
+                            guard duration > 0 else { return }
+                            player.seek(to: CMTime(seconds: progress * duration, preferredTimescale: 600))
+                        }
+                )
+            }
+            .frame(height: 14)
+
+            HStack(spacing: 8) {
+                Button(action: togglePlay) {
+                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 26, height: 26)
+                        .background(Color.black.opacity(0.45))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                Text("\(Fmt.duration(progress * duration)) / \(Fmt.duration(duration))")
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundColor(.white.opacity(0.92))
+                    .lineLimit(1)
+                    .fixedSize()
+
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
+        .background(
+            LinearGradient(
+                colors: [Color.clear, Color.black.opacity(0.55)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+    }
+
+    // MARK: 交互
+
+    private func primaryTap() {
+        guard !url.isEmpty else { return }
+        if !inlineActive && autoFullScreen {
+            openFullScreen()
+            return
+        }
+        if inlineActive {
+            togglePlay()
+        } else {
+            startInline()
+        }
+    }
+
+    private func startInline() {
+        guard let link = URL(string: url) else { return }
+        let item = AVPlayerItem(url: link)
+        player.replaceCurrentItem(with: item)
+        player.play()
+        isPlaying = true
+        inlineActive = true
+
+        if timeObserver == nil {
+            timeObserver = player.addPeriodicTimeObserver(
+                forInterval: CMTime(seconds: 0.3, preferredTimescale: 600),
+                queue: .main
+            ) { time in
+                let total = item.duration.seconds
+                if total.isFinite && total > 0 { duration = total }
+                let current = time.seconds
+                if current.isFinite, duration > 0 {
+                    progress = min(max(current / duration, 0), 1)
+                }
+            }
+        }
+
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: item,
+            queue: .main
+        ) { _ in
+            isPlaying = false
+            progress = 1
+        }
+    }
+
+    private func togglePlay() {
+        if isPlaying {
+            player.pause()
+            isPlaying = false
+        } else {
+            if progress >= 0.999 {
+                player.seek(to: .zero)
+                progress = 0
+            }
+            player.play()
+            isPlaying = true
+        }
+    }
+
+    private func openFullScreen() {
+        guard !url.isEmpty else { return }
+        if inlineActive {
+            player.pause()
+            isPlaying = false
+        }
+        showImmersive = true
+    }
+
+    private func teardown() {
+        player.pause()
+        if let observer = timeObserver {
+            player.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+        if let end = endObserver {
+            NotificationCenter.default.removeObserver(end)
+            endObserver = nil
         }
     }
 }

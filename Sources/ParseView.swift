@@ -460,7 +460,8 @@ struct ResultCard: View {
                         onDownload: {
                             store.dismissImmersivePlayer()
                             store.downloadVideo(url: activeURL, title: data.title ?? "video")
-                        }
+                        },
+                        autoFullScreen: store.autoFullScreenPlayback
                     )
                 }
 
