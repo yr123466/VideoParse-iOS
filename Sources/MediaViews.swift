@@ -835,7 +835,7 @@ struct ZoomableImage: View {
 
 // MARK: - 音频播放
 
-final class AudioPlaybackModel: ObservableObject {
+final class AudioPlaybackModel: NSObject, ObservableObject {
     @Published var isPlaying = false
     @Published var isBuffering = false
     @Published var current: Double = 0
@@ -857,6 +857,12 @@ final class AudioPlaybackModel: ObservableObject {
         let newPlayer = AVPlayer(playerItem: item)
         player = newPlayer
         loadedURL = url
+
+        // 缓冲状态观察
+        item.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
+        item.addObserver(self, forKeyPath: "playbackBufferEmpty", options: [.new], context: nil)
+        item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: [.new], context: nil)
+
         timeObserver = newPlayer.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.4, preferredTimescale: 600),
             queue: .main
@@ -896,12 +902,31 @@ final class AudioPlaybackModel: ObservableObject {
         isPlaying = false
     }
 
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
+        guard let item = object as? AVPlayerItem else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if keyPath == "status" {
+                self.isBuffering = (item.status == .unknown)
+            } else if keyPath == "playbackBufferEmpty" {
+                self.isBuffering = item.isPlaybackBufferEmpty
+            } else if keyPath == "playbackLikelyToKeepUp" {
+                self.isBuffering = !item.isPlaybackLikelyToKeepUp
+            }
+        }
+    }
+
     private func cleanup() {
         if let observer = timeObserver, let player = player {
             player.removeTimeObserver(observer)
         }
         if let end = endObserver {
             NotificationCenter.default.removeObserver(end)
+        }
+        if let item = player?.currentItem {
+            item.removeObserver(self, forKeyPath: "status")
+            item.removeObserver(self, forKeyPath: "playbackBufferEmpty")
+            item.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
         }
         player?.pause()
         timeObserver = nil
@@ -982,6 +1007,78 @@ struct AudioPlayCard: View {
                 .foregroundColor(Theme.textTertiary)
             }
         }
+        .onDisappear { model.stop() }
+    }
+}
+
+// MARK: - 背景音乐行（含在线试听）
+
+struct MusicRowView: View {
+    let music: MusicInfo
+    var title: String? = nil
+    var author: String? = nil
+    var cover: String? = nil
+    var platform: String? = nil
+    var onDownload: (String) -> Void
+
+    @StateObject private var model = AudioPlaybackModel()
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: "music.note")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Theme.amber)
+                .frame(width: 30, height: 30)
+                .background(Theme.amber.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("背景原声音乐")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Theme.textPrimary)
+                Text(music.title ?? "原声")
+                    .font(.system(size: 9.5))
+                    .foregroundColor(Theme.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            // 在线试听按钮
+            Button {
+                if let url = music.url, !url.isEmpty {
+                    model.toggle(url)
+                }
+            } label: {
+                ZStack {
+                    Circle().fill(Theme.amber).frame(width: 32, height: 32)
+                    Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white)
+                        .offset(x: model.isPlaying ? 0 : 1)
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            .overlay(alignment: .top) {
+                if model.isBuffering {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .offset(y: -2)
+                }
+            }
+
+            Button {
+                if let url = music.url, !url.isEmpty {
+                    onDownload(url)
+                }
+            } label: {
+                Text("下载并收录")
+            }
+            .buttonStyle(SoftButtonStyle(tint: Theme.amber, filled: true))
+        }
+        .padding(9)
+        .background(Theme.amber.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
         .onDisappear { model.stop() }
     }
 }

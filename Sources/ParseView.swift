@@ -622,46 +622,24 @@ struct ResultCard: View {
     }
 
     private func musicRow(_ music: MusicInfo) -> some View {
-        HStack(spacing: 9) {
-            Image(systemName: "music.note")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(Theme.amber)
-                .frame(width: 30, height: 30)
-                .background(Theme.amber.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("背景原声音乐")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Theme.textPrimary)
-                Text(music.title ?? "原声")
-                    .font(.system(size: 9.5))
-                    .foregroundColor(Theme.textSecondary)
-                    .lineLimit(1)
+        MusicRowView(
+            music: music,
+            title: data.title,
+            author: data.author?.name,
+            cover: data.cover,
+            platform: response.platform ?? SupportedPlatforms.detect(data.url ?? ""),
+            onDownload: { url in
+                store.downloadAudio(url: url, title: music.title ?? data.title ?? "音频")
+                store.saveAudioMaterial(
+                    title: music.title ?? data.title ?? "背景原声音乐",
+                    author: music.author ?? data.author?.name ?? "佚名",
+                    audioUrl: url,
+                    coverUrl: data.cover ?? "",
+                    platform: response.platform ?? SupportedPlatforms.detect(data.url ?? ""),
+                    originalInput: store.inputText
+                )
             }
-
-            Spacer(minLength: 0)
-
-            Button {
-                if let url = music.url, !url.isEmpty {
-                    store.downloadAudio(url: url, title: music.title ?? data.title ?? "音频")
-                    store.saveAudioMaterial(
-                        title: music.title ?? data.title ?? "背景原声音乐",
-                        author: music.author ?? data.author?.name ?? "佚名",
-                        audioUrl: url,
-                        coverUrl: data.cover ?? "",
-                        platform: response.platform ?? SupportedPlatforms.detect(data.url ?? ""),
-                        originalInput: store.inputText
-                    )
-                }
-            } label: {
-                Text("下载并收录")
-            }
-            .buttonStyle(SoftButtonStyle(tint: Theme.amber, filled: true))
-        }
-        .padding(9)
-        .background(Theme.amber.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        )
     }
 }
 
