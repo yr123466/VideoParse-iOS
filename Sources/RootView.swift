@@ -161,6 +161,19 @@ struct RootView: View {
                 .allowsHitTesting(store.selectedTab == 3)
         }
         .animation(nil, value: store.selectedTab)
+        // 页面左右轻扫也能切 Tab（与底栏拖动呼应）
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 28)
+                .onEnded { value in
+                    guard abs(value.translation.width) > abs(value.translation.height) * 1.6 else { return }
+                    let delta = value.translation.width < 0 ? 1 : -1
+                    let next = min(max(store.selectedTab + delta, 0), 3)
+                    guard next != store.selectedTab else { return }
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.8)) {
+                        store.selectedTab = next
+                    }
+                }
+        )
     }
 
     @ViewBuilder
@@ -173,6 +186,7 @@ struct RootView: View {
 struct FloatingTabBar: View {
     @Binding var selected: Int
 
+    private static let tabCount = 4
     private static let tabs: [TabSpec] = [
         TabSpec(index: 0, icon: "bolt.fill", title: "解析"),
         TabSpec(index: 1, icon: "photo.on.rectangle.angled", title: "素材库"),
@@ -180,20 +194,28 @@ struct FloatingTabBar: View {
         TabSpec(index: 3, icon: "gearshape.fill", title: "设置"),
     ]
 
+    /// 手指拖动产生的额外位移（点），叠加在选中项位置上
+    @State private var dragX: CGFloat = 0
+    @State private var isDragging = false
+
     var body: some View {
-        HStack(spacing: 5) {
-            ForEach(Self.tabs) { tab in
-                TabBarButton(
-                    icon: tab.icon,
-                    title: tab.title,
-                    isSelected: selected == tab.index
-                ) {
-                    guard selected != tab.index else { return }
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                        selected = tab.index
-                    }
-                }
+        GeometryReader { geo in
+            let slot = geo.size.width / CGFloat(Self.tabCount)
+            let baseX = (CGFloat(selected) + 0.5) * slot
+
+            // 拖动时按位移推算出「当前指向的项」，胶囊跟着手指走
+            let targetIndex = index(at: baseX + dragX, slot: slot)
+            let shownX = isDragging
+                ? clampX(baseX + dragX, slot: slot)
+                : baseX
+
+            ZStack {
+                pillLayer(slot: slot, x: shownX, stretch: stretchFactor(slot: slot))
+                itemsLayer(slot: slot, activeIndex: isDragging ? targetIndex : selected)
             }
+            .frame(height: 50)
+            .contentShape(Rectangle())
+            .gesture(dragGesture(slot: slot))
         }
         .padding(7)
         .padding(.horizontal, 5)
@@ -201,6 +223,80 @@ struct FloatingTabBar: View {
         .frame(height: 64)
         .padding(.horizontal, 22)
         .padding(.bottom, 12)
+    }
+
+    // MARK: 图层
+
+    private func pillLayer(slot: CGFloat, x: CGFloat, stretch: CGFloat) -> some View {
+        Capsule()
+            .fill(Color.white.opacity(0.16))
+            .glassEffect(.clear, in: Capsule())
+            .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
+            .frame(width: max(38, slot - 10 + stretch), height: 42)
+            .position(x: x, y: 25)
+            .animation(isDragging ? nil : .spring(response: 0.34, dampingFraction: 0.74), value: selected)
+    }
+
+    private func itemsLayer(slot: CGFloat, activeIndex: Int) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Self.tabs) { tab in
+                TabBarButton(
+                    icon: tab.icon,
+                    title: tab.title,
+                    isSelected: activeIndex == tab.index
+                ) {
+                    guard selected != tab.index else { return }
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.74)) {
+                        selected = tab.index
+                    }
+                }
+                .frame(width: slot)
+            }
+        }
+    }
+
+    // MARK: 手势
+
+    private func dragGesture(slot: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 6)
+            .onChanged { value in
+                isDragging = true
+                dragX = value.translation.width
+            }
+            .onEnded { value in
+                let from = (CGFloat(selected) + 0.5) * slot
+                let predicted = value.predictedEndTranslation.width
+                // 用预测位移做甩动判定，轻扫也能切页
+                let landing = index(at: from + predicted * 0.8, slot: slot)
+                isDragging = false
+                dragX = 0
+                if landing != selected {
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.74)) {
+                        selected = landing
+                    }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
+    }
+
+    // MARK: 计算
+
+    private func index(at x: CGFloat, slot: CGFloat) -> Int {
+        let raw = Int(x / max(slot, 1))
+        return min(max(raw, 0), Self.tabCount - 1)
+    }
+
+    private func clampX(_ x: CGFloat, slot: CGFloat) -> CGFloat {
+        let half = slot / 2
+        return min(max(x, half), slot * CGFloat(Self.tabCount) - half)
+    }
+
+    /// 离最近槽位越远，胶囊横向拉伸越多，产生液体形变
+    private func stretchFactor(slot: CGFloat) -> CGFloat {
+        guard isDragging else { return 0 }
+        let x = (CGFloat(selected) + 0.5) * slot + dragX
+        let nearest = (CGFloat(index(at: x, slot: slot)) + 0.5) * slot
+        return min(abs(x - nearest) * 0.35, slot * 0.42)
     }
 }
 
@@ -233,10 +329,6 @@ private struct TabBarButton: View {
         .foregroundColor(isSelected ? Theme.primary : Color(hex: 0x8E98AB))
         .frame(maxWidth: .infinity)
         .padding(.vertical, 9)
-        .padding(.horizontal, 2)
-        .background(alignment: .center) {
-            if isSelected { selectedPill }
-        }
         .contentShape(Rectangle())
     }
 
@@ -244,14 +336,6 @@ private struct TabBarButton: View {
         Image(systemName: icon)
             .font(.system(size: 16, weight: .semibold))
             .symbolEffect(.bounce.byLayer, value: isSelected)
-    }
-
-    private var selectedPill: some View {
-        // 极淡白 + 玻璃：选中项有一点发亮的高光，但仍透出底色
-        Capsule()
-            .fill(Color.white.opacity(0.16))
-            .glassEffect(.clear, in: Capsule())
-            .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
     }
 }
 
