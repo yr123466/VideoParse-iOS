@@ -95,6 +95,9 @@ App 启动后每 24 小时主动查询一次 latest Release。如果 `tag_name` 
 - 从 Release body 提取的更新说明
 - 按钮：**不再提醒 / 取消 / 去 GitHub 更新**
 
+> 更新说明（发行版介绍）来自仓库根目录的 `CHANGELOG.md`：构建时自动提取 `## v<版本>` 段落写入 Release body，
+> 改完 CHANGELOG 发版即可，不用手动维护 Release 描述。
+
 不想再弹窗可在设置里勾选“不再提醒”。
 
 ## 🚀 云端构建（无需 Mac）

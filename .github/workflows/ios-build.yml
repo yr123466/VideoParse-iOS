@@ -106,9 +106,18 @@ jobs:
           BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")
           TAG="v${VERSION}"
           echo "发布版本: ${TAG} (build ${BUILD})"
-          NOTES=$(printf '%s\n\n---\n未签名 IPA · 构建 %s · 提交 %s · 大小 %s\n安装：用 eSign / AltStore / Sideloadly 导入本 IPA 自签。' "iOS v${VERSION}" "${BUILD}" "${GITHUB_SHA::7}" "${IPA_SIZE}")
+          # 发行版介绍：优先取 CHANGELOG.md 中对应版本的段落，App 内更新弹窗会显示这段文字
+          BODY=""
+          if [ -f CHANGELOG.md ]; then
+            BODY=$(awk -v h="## v${VERSION}" '$0 == h {f=1; next} /^## v[0-9]/ {f=0} f' CHANGELOG.md)
+          fi
+          if [ -z "$(printf '%s' "$BODY" | tr -d '[:space:]')" ]; then
+            BODY=$(printf 'iOS v%s 常规更新。' "${VERSION}")
+          fi
+          NOTES=$(printf '%s\n\n---\n未签名 IPA · 构建 %s · 提交 %s · 大小 %s\n安装：用 eSign / AltStore / Sideloadly 导入本 IPA 自签。' "$BODY" "${BUILD}" "${GITHUB_SHA::7}" "${IPA_SIZE}")
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$RUNNER_TEMP/VideoParse-unsigned.ipa" --clobber
+            gh release edit "$TAG" --title "VideoParse iOS v${VERSION}" --notes "$NOTES" --latest
           else
             gh release create "$TAG" "$RUNNER_TEMP/VideoParse-unsigned.ipa" \
               --title "VideoParse iOS v${VERSION}" \
