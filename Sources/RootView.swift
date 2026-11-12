@@ -170,49 +170,60 @@ struct RootView: View {
 struct FloatingTabBar: View {
     @Binding var selected: Int
 
-    private let tabs: [(index: Int, icon: String, title: String)] = [
-        (0, "bolt.fill", "解析"),
-        (1, "photo.on.rectangle.angled", "素材库"),
-        (2, "square.grid.2x2.fill", "平台"),
-        (3, "gearshape.fill", "设置"),
+    private static let tabs: [TabSpec] = [
+        TabSpec(index: 0, icon: "bolt.fill", title: "解析"),
+        TabSpec(index: 1, icon: "photo.on.rectangle.angled", title: "素材库"),
+        TabSpec(index: 2, icon: "square.grid.2x2.fill", title: "平台"),
+        TabSpec(index: 3, icon: "gearshape.fill", title: "设置"),
     ]
 
     var body: some View {
         HStack(spacing: 5) {
-            ForEach(tabs, id: \.index) { tab in
-                Button {
+            ForEach(Self.tabs) { tab in
+                TabBarButton(
+                    icon: tab.icon,
+                    title: tab.title,
+                    isSelected: selected == tab.index
+                ) {
+                    guard selected != tab.index else { return }
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                         selected = tab.index
                     }
-                } label: {
-                    tabItem(icon: tab.icon, title: tab.title, isSelected: selected == tab.index)
                 }
-                .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(7)
         .padding(.horizontal, 5)
-        .background {
-            // iOS 26 液态玻璃：自带高光、折射与边缘光效
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(.glassEffect(.regular))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.30), lineWidth: 0.8)
-        }
-        .shadow(color: Color.black.opacity(0.18), radius: 22, y: 10)
+        .glassDock(cornerRadius: 26)
         .frame(height: 64)
         .padding(.horizontal, 22)
         .padding(.bottom, 12)
     }
+}
 
-    // 拆成独立子视图，避免 Xcode 26 类型检查超时
-    private func tabItem(icon: String, title: String, isSelected: Bool) -> some View {
+struct TabSpec: Identifiable {
+    let index: Int
+    let icon: String
+    let title: String
+    var id: Int { index }
+}
+
+private struct TabBarButton: View {
+    let icon: String
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            label
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
+    private var label: some View {
         VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .symbolEffect(.bounce.byLayer, value: isSelected)
+            iconView
             Text(title)
                 .font(.system(size: 10, weight: .semibold))
         }
@@ -220,14 +231,39 @@ struct FloatingTabBar: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 9)
         .padding(.horizontal, 2)
-        .background {
-            if isSelected {
-                Capsule()
-                    .fill(Color.white.opacity(0.45))
-                    .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 1)
-            }
+        .background(alignment: .center) {
+            if isSelected { selectedPill }
         }
         .contentShape(Rectangle())
+    }
+
+    private var iconView: some View {
+        Image(systemName: icon)
+            .font(.system(size: 16, weight: .semibold))
+            .symbolEffect(.bounce.byLayer, value: isSelected)
+    }
+
+    private var selectedPill: some View {
+        Capsule()
+            .fill(Color.white.opacity(0.45))
+            .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 1)
+    }
+}
+
+// MARK: - 液态玻璃 Dock 背景
+
+private extension View {
+    func glassDock(cornerRadius: CGFloat) -> some View {
+        self
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.glassEffect(.regular))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.30), lineWidth: 0.8)
+            }
+            .shadow(color: Color.black.opacity(0.18), radius: 22, y: 10)
     }
 }
 
