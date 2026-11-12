@@ -178,50 +178,51 @@ struct FloatingTabBar: View {
     ]
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.94))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.75), lineWidth: 1)
-                )
-                .shadow(color: Color.black.opacity(0.14), radius: 18, y: 6)
-
-            HStack(spacing: 8) {
-                ForEach(tabs, id: \.index) { tab in
-                    Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            selected = tab.index
-                        }
-                    } label: {
-                        VStack(spacing: 5) {
-                            Image(systemName: tab.icon)
-                                .font(.system(size: 16, weight: .medium))
-                            Text(tab.title)
-                                .font(.system(size: 10.5, weight: .medium))
-                        }
-                        .foregroundColor(selected == tab.index ? Theme.primary : Color(hex: 0x64748B))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            ZStack {
-                                if selected == tab.index {
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(Theme.primary.opacity(0.13))
-                                        .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 2)
-                                }
-                            }
-                        )
+        HStack(spacing: 5) {
+            ForEach(tabs, id: \.index) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        selected = tab.index
                     }
-                    .buttonStyle(PlainButtonStyle())
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .symbolEffect(.bounce.byLayer, value: selected == tab.index)
+                        Text(tab.title)
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(selected == tab.index ? Theme.primary : Color(hex: 0x8E98AB))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .padding(.horizontal, 2)
+                    .background {
+                        if selected == tab.index {
+                            Capsule()
+                                .fill(Color.white.opacity(0.45))
+                                .shadow(color: Theme.primary.opacity(0.18), radius: 4, y: 1)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(PlainButtonStyle())
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
         }
-        .frame(height: 58)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 14)
+        .padding(7)
+        .padding(.horizontal, 5)
+        .background {
+            // iOS 26 液态玻璃：自带高光、折射与边缘光效
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(.glassEffect(.regular))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.30), lineWidth: 0.8)
+        }
+        .shadow(color: Color.black.opacity(0.18), radius: 22, y: 10)
+        .frame(height: 64)
+        .padding(.horizontal, 22)
+        .padding(.bottom, 12)
     }
 }
 

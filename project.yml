@@ -1,11 +1,11 @@
 name: VideoParse
 options:
-  # 保持与 GitHub macos-14 runner（Xcode 15.4）兼容的工程格式
-  projectFormat: xcode15_0
-  xcodeVersion: "15.4"
+  # iOS 26 + Xcode 26（Liquid Glass）
+  projectFormat: xcode16_0
+  xcodeVersion: "26.0"
   bundleIdPrefix: com.videoparse
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "26.0"
   createIntermediateGroups: true
   groupSortPosition: top
 
@@ -23,7 +23,7 @@ targets:
   VideoParse:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "26.0"
     sources:
       - path: Sources
       - path: Resources
@@ -33,8 +33,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.videoparse.kxqp
         INFOPLIST_FILE: Support/Info.plist
         TARGETED_DEVICE_FAMILY: "1"
-        MARKETING_VERSION: "1.3.3"
-        CURRENT_PROJECT_VERSION: "7"
+        MARKETING_VERSION: "1.4.0"
+        CURRENT_PROJECT_VERSION: "8"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: "NO"
