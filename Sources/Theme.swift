@@ -265,11 +265,12 @@ struct SelectableChip: View {
 
 struct ToastBanner: View {
     let text: String
+    var isError: Bool = false
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(Theme.green)
+            Image(systemName: isError ? "xmark.octagon.fill" : "checkmark.circle.fill")
+                .foregroundColor(isError ? Theme.coral : Theme.green)
             Text(text)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(Theme.textPrimary)

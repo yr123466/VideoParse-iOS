@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import UIKit
 import Photos
+import AVFoundation
 
 // MARK: - 错误
 
@@ -453,6 +454,37 @@ enum PhotoSaver {
         } catch {
             throw APIError.message("保存到相册失败：\(error.localizedDescription)")
         }
+    }
+
+    /// 本地把视频转成实况：从视频中取一帧作为静态图，与视频配对写入相册。
+    /// 解决接口返回的静态图与视频不匹配导致 PHPhotosErrorDomain 330 的问题。
+    static func saveVideoAsLivePhoto(videoURL: URL, at seconds: Double? = nil) async throws {
+        let asset = AVURLAsset(url: videoURL)
+        let duration = try await asset.load(.duration)
+        let total = duration.seconds
+        guard total.isFinite, total > 0.05 else {
+            throw APIError.message("视频无效，无法转换为实况")
+        }
+
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+
+        // 默认取视频中间帧（实况的关键帧通常在中间）
+        let targetSeconds = min(max(seconds ?? total * 0.5, 0.05), max(total - 0.05, 0.05))
+        let time = CMTime(seconds: targetSeconds, preferredTimescale: 600)
+        let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
+        guard let jpeg = UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.95) else {
+            throw APIError.message("无法生成实况静态图")
+        }
+
+        let imageURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vp_live_\(UUID().uuidString).jpg")
+        try jpeg.write(to: imageURL)
+        defer { try? FileManager.default.removeItem(at: imageURL) }
+
+        try await saveLivePhoto(image: imageURL, video: videoURL)
     }
 
     /// 保存一组实况照片（静态图 + 配对视频）为真正的 Live Photo

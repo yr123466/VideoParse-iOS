@@ -81,6 +81,7 @@ final class AppStore: ObservableObject {
 
     @Published var clipboardHint: Bool = false
     @Published var toast: String? = nil
+    @Published var toastIsError: Bool = false
 
     private var toastTask: Task<Void, Never>? = nil
     private let defaults = UserDefaults.standard
@@ -542,12 +543,24 @@ final class AppStore: ObservableObject {
         Task {
             var saved = 0
             for pair in valid {
-                guard let image = pair.image, let video = pair.video else { continue }
+                guard let video = pair.video, !video.isEmpty else { continue }
                 do {
-                    let imageFile = try await DownloadManager.tempDownload(image, ext: "jpg")
                     let videoFile = try await DownloadManager.tempDownload(video, ext: "mp4")
-                    try await PhotoSaver.saveLivePhoto(image: imageFile, video: videoFile)
-                    try? FileManager.default.removeItem(at: imageFile)
+                    var done = false
+                    if let image = pair.image, !image.isEmpty,
+                       let imageFile = try? await DownloadManager.tempDownload(image, ext: "jpg") {
+                        do {
+                            try await PhotoSaver.saveLivePhoto(image: imageFile, video: videoFile)
+                            try? FileManager.default.removeItem(at: imageFile)
+                            done = true
+                        } catch {
+                            try? FileManager.default.removeItem(at: imageFile)
+                        }
+                    }
+                    if !done {
+                        // 接口静态图不匹配时，本地从视频取帧合成
+                        try await PhotoSaver.saveVideoAsLivePhoto(videoURL: videoFile)
+                    }
                     try? FileManager.default.removeItem(at: videoFile)
                     saved += 1
                 } catch {
@@ -569,10 +582,9 @@ final class AppStore: ObservableObject {
         Task {
             do {
                 if let video = liveVideo, !video.isEmpty {
-                    let imageFile = try await DownloadManager.tempDownload(url, ext: "jpg")
                     let videoFile = try await DownloadManager.tempDownload(video, ext: "mp4")
-                    try await PhotoSaver.saveLivePhoto(image: imageFile, video: videoFile)
-                    try? FileManager.default.removeItem(at: imageFile)
+                    // 接口返回的静态图常与视频不匹配（保存报 330），改为本地取帧合成
+                    try await PhotoSaver.saveVideoAsLivePhoto(videoURL: videoFile)
                     try? FileManager.default.removeItem(at: videoFile)
                     showToast("已保存实况动图到相册")
                 } else {
@@ -582,7 +594,7 @@ final class AppStore: ObservableObject {
                     showToast("已保存图片到相册")
                 }
             } catch {
-                showToast(error.localizedDescription.isEmpty ? "保存失败，请检查相册权限" : error.localizedDescription)
+                showToast(error.localizedDescription.isEmpty ? "保存失败，请检查相册权限" : error.localizedDescription, isError: true)
             }
         }
     }
@@ -610,9 +622,12 @@ final class AppStore: ObservableObject {
         DownloadManager.shared.sharePayload = SharePayload(items: items)
     }
 
-    func showToast(_ message: String) {
+    func showToast(_ message: String, isError: Bool = false) {
         toastTask?.cancel()
-        withAnimation(.easeOut(duration: 0.2)) { toast = message }
+        withAnimation(.easeOut(duration: 0.2)) {
+            toast = message
+            toastIsError = isError
+        }
         toastTask = Task {
             try? await Task.sleep(nanoseconds: 2_200_000_000)
             if Task.isCancelled { return }

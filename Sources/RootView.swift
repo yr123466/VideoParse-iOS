@@ -37,7 +37,7 @@ struct RootView: View {
         }
         .overlay(alignment: .top) {
             if let toast = store.toast {
-                ToastBanner(text: toast)
+                ToastBanner(text: toast, isError: store.toastIsError)
                     .padding(.top, 8)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(100)
