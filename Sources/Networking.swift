@@ -484,7 +484,33 @@ enum PhotoSaver {
         try jpeg.write(to: imageURL)
         defer { try? FileManager.default.removeItem(at: imageURL) }
 
-        try await saveLivePhoto(image: imageURL, video: videoURL)
+        // 先按原视频配对；若 Photos 因编码拒绝（错误 330），转码成标准 H.264 MP4 再试
+        do {
+            try await saveLivePhoto(image: imageURL, video: videoURL)
+        } catch {
+            let normalized = try await Self.normalizeVideoForLivePhoto(videoURL)
+            defer { try? FileManager.default.removeItem(at: normalized) }
+            try await saveLivePhoto(image: imageURL, video: normalized)
+        }
+    }
+
+    /// 把任意视频转成 Photos 实况可接受的 H.264 MP4（去掉音轨，保留方向）
+    static func normalizeVideoForLivePhoto(_ videoURL: URL) async throws -> URL {
+        let asset = AVURLAsset(url: videoURL)
+        guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
+            throw APIError.message("无法转码视频")
+        }
+        let outURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vp_norm_\(UUID().uuidString).mp4")
+        try? FileManager.default.removeItem(at: outURL)
+        session.outputURL = outURL
+        session.outputFileType = .mp4
+        session.shouldOptimizeForNetworkUse = true
+        await session.export()
+        guard session.status == .completed, FileManager.default.fileExists(atPath: outURL.path) else {
+            throw APIError.message("视频转码失败")
+        }
+        return outURL
     }
 
     /// 保存一组实况照片（静态图 + 配对视频）为真正的 Live Photo
