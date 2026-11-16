@@ -484,20 +484,53 @@ enum PhotoSaver {
         try jpeg.write(to: imageURL)
         defer { try? FileManager.default.removeItem(at: imageURL) }
 
-        // 先按原视频配对；若 Photos 因编码拒绝（错误 330），转码成标准 H.264 MP4 再试
+        // 逐级兜底：原视频 -> 去音轨 H.264 -> 去音轨且裁到 3 秒
         do {
             try await saveLivePhoto(image: imageURL, video: videoURL)
+            return
         } catch {
+            // 继续尝试转码
+        }
+        do {
             let normalized = try await Self.normalizeVideoForLivePhoto(videoURL)
             defer { try? FileManager.default.removeItem(at: normalized) }
             try await saveLivePhoto(image: imageURL, video: normalized)
+            return
+        } catch {
+            // 继续尝试裁切
         }
+        let clipped = try await Self.normalizeVideoForLivePhoto(videoURL, maxDuration: 3.0)
+        defer { try? FileManager.default.removeItem(at: clipped) }
+        try await saveLivePhoto(image: imageURL, video: clipped)
     }
 
-    /// 把任意视频转成 Photos 实况可接受的 H.264 MP4（去掉音轨，保留方向）
-    static func normalizeVideoForLivePhoto(_ videoURL: URL) async throws -> URL {
+    /// 把任意视频转成 Photos 实况可接受的 MP4：
+    /// 只保留视频轨（去掉音轨，Photos 对实况配对视频不接受音轨），保留方向。
+    /// maxDuration 可限制时长（实况标准约 3 秒），用于二次兜底。
+    static func normalizeVideoForLivePhoto(_ videoURL: URL, maxDuration: Double? = nil) async throws -> URL {
         let asset = AVURLAsset(url: videoURL)
-        guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
+        let duration = try await asset.load(.duration)
+        let videoTracks = try await asset.loadTracks(withMediaType: .video)
+        guard let sourceTrack = videoTracks.first else {
+            throw APIError.message("视频没有画面轨道")
+        }
+
+        let composition = AVMutableComposition()
+        guard let compTrack = composition.addMutableTrack(
+            withMediaType: .video,
+            preferredTrackID: kCMPersistentTrackID_Invalid
+        ) else {
+            throw APIError.message("无法转码视频")
+        }
+        compTrack.preferredTransform = try await sourceTrack.load(.preferredTransform)
+
+        var range = CMTimeRange(start: .zero, duration: duration)
+        if let limit = maxDuration, duration.seconds > limit {
+            range = CMTimeRange(start: .zero, duration: CMTime(seconds: limit, preferredTimescale: 600))
+        }
+        try compTrack.insertTimeRange(range, of: sourceTrack, at: .zero)
+
+        guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
             throw APIError.message("无法转码视频")
         }
         let outURL = FileManager.default.temporaryDirectory
