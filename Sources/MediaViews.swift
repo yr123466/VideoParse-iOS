@@ -734,11 +734,18 @@ struct ImagePager: View {
     }
 }
 
+extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
 struct ImageViewer: View {
     let images: [String]
     var liveVideos: [String] = []
     @State var startIndex: Int
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: AppStore
 
     private func liveURL(at offset: Int) -> String? {
         guard offset >= 0, offset < liveVideos.count else { return nil }
@@ -780,6 +787,20 @@ struct ImageViewer: View {
                             .clipShape(Capsule())
                     }
                     Spacer()
+
+                    // 下载当前这一张（实况动图按 Live Photo 保存）
+                    Button {
+                        store.saveCurrentImage(url: images[safe: startIndex] ?? "", liveVideo: liveURL(at: startIndex))
+                    } label: {
+                        Image(systemName: "arrow.down.to.line")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                            .background(Color.white.opacity(0.16))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
                     Button {
                         dismiss()
                     } label: {

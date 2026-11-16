@@ -558,6 +558,35 @@ final class AppStore: ObservableObject {
         }
     }
 
+    /// 保存当前这一张：普通图直接存相册；实况动图按 Live Photo 保存
+    func saveCurrentImage(url: String, liveVideo: String?) {
+        guard !url.isEmpty else {
+            showToast("当前没有可保存的图片")
+            return
+        }
+        let isLive = (liveVideo?.isEmpty == false)
+        showToast(isLive ? "正在保存实况动图…" : "正在保存图片…")
+        Task {
+            do {
+                if let video = liveVideo, !video.isEmpty {
+                    let imageFile = try await DownloadManager.tempDownload(url, ext: "jpg")
+                    let videoFile = try await DownloadManager.tempDownload(video, ext: "mp4")
+                    try await PhotoSaver.saveLivePhoto(image: imageFile, video: videoFile)
+                    try? FileManager.default.removeItem(at: imageFile)
+                    try? FileManager.default.removeItem(at: videoFile)
+                    showToast("已保存实况动图到相册")
+                } else {
+                    let file = try await DownloadManager.tempDownload(url, ext: url.lowercased().contains(".png") ? "png" : "jpg")
+                    try await PhotoSaver.save(url: file, isVideo: false)
+                    try? FileManager.default.removeItem(at: file)
+                    showToast("已保存图片到相册")
+                }
+            } catch {
+                showToast(error.localizedDescription.isEmpty ? "保存失败，请检查相册权限" : error.localizedDescription)
+            }
+        }
+    }
+
     func downloadAudio(url: String, title: String) {
         guard !url.isEmpty else { return }
         let name = "\(DownloadManager.safeName(title.isEmpty ? "audio" : title))_\(Int(Date().timeIntervalSince1970)).m4a"
