@@ -92,8 +92,12 @@ struct APIClient {
         }
     }
 
-    static func checkUpdate() async throws -> AppUpdateInfo? {
-        guard let url = URL(string: releaseAPI) else { return nil }
+    /// 国内加速镜像前缀（GitHub API 直连不稳定时使用）
+    static let mirrorPrefix = "https://gh-proxy.com/"
+
+    static func checkUpdate(useMirror: Bool = false) async throws -> AppUpdateInfo? {
+        let endpoint = useMirror ? mirrorPrefix + releaseAPI : releaseAPI
+        guard let url = URL(string: endpoint) else { return nil }
         var req = URLRequest(url: url)
         req.timeoutInterval = 18
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")

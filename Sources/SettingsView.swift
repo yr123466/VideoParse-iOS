@@ -161,6 +161,24 @@ struct SettingsView: View {
     private var updateCard: some View {
         CardBox(padding: 14) {
             VStack(alignment: .leading, spacing: 9) {
+                SectionTitle(icon: "arrow.down.circle.fill", title: "软件源线路", tint: Theme.indigo)
+
+                Text("更新检测走哪条线路，国内网络建议用加速镜像")
+                    .font(.system(size: 11))
+                    .foregroundColor(Theme.textSecondary)
+
+                Picker("软件源线路", selection: Binding(
+                    get: { store.useUpdateMirror },
+                    set: { store.setUpdateMirror($0); store.checkUpdateNow() }
+                )) {
+                    Text("GitHub 官方直连").tag(false)
+                    Text("国内加速镜像").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .tint(Theme.primary)
+
+                Divider().background(Theme.stroke)
+
                 HStack {
                     SectionTitle(icon: "arrow.down.circle.fill", title: "版本更新检测", tint: Theme.green)
                     Spacer(minLength: 0)

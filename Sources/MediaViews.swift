@@ -680,9 +680,9 @@ struct ImagePager: View {
             TabView(selection: $index) {
                 ForEach(Array(images.enumerated()), id: \.offset) { offset, link in
                     ZStack {
-                        RemoteImage(url: link, contentMode: .fill)
+                        // 小图/长图完整显示，不再裁切内容
+                        RemoteImage(url: link, contentMode: .fit)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .clipped()
 
                         if offset == index, let video = liveURL(at: offset) {
                             LoopingVideoView(url: video)
@@ -796,7 +796,8 @@ struct ImageViewer: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.white)
                             .frame(width: 34, height: 34)
-                            .background(Color.white.opacity(0.16))
+                            .background(.ultraThinMaterial, in: Circle())
+                            .background(Color.black.opacity(0.38), in: Circle())
                             .clipShape(Circle())
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -808,7 +809,8 @@ struct ImageViewer: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.white)
                             .frame(width: 34, height: 34)
-                            .background(Color.white.opacity(0.16))
+                            .background(.ultraThinMaterial, in: Circle())
+                            .background(Color.black.opacity(0.38), in: Circle())
                             .clipShape(Circle())
                     }
                     .buttonStyle(PlainButtonStyle())

@@ -49,6 +49,7 @@ final class AppStore: ObservableObject {
         static let autoFullScreenPlayback = "auto_full_screen_playback"
         static let disclaimerAccepted = "disclaimer_accepted"
         static let skippedUpdateVersion = "skipped_update_version"
+        static let updateMirror = "update_mirror"
     }
 
     // MARK: 已发布状态
@@ -67,6 +68,8 @@ final class AppStore: ObservableObject {
     @Published var customApiKey: String = ""
     @Published var autoParseClipboard: Bool = true
     @Published var preferHighQuality: Bool = true
+    /// 更新检测是否走国内加速镜像
+    @Published var useUpdateMirror: Bool = false
     /// true = 点视频卡片直接全屏；false（默认）= 卡片内直接播放，可点右上角全屏
     @Published var autoFullScreenPlayback: Bool = false
 
@@ -92,6 +95,7 @@ final class AppStore: ObservableObject {
         customApiKey = defaults.string(forKey: Keys.customApiKey) ?? ""
         autoParseClipboard = defaults.object(forKey: Keys.autoClipboard) as? Bool ?? true
         preferHighQuality = defaults.object(forKey: Keys.preferHighQuality) as? Bool ?? true
+        useUpdateMirror = defaults.object(forKey: Keys.updateMirror) as? Bool ?? false
         autoFullScreenPlayback = defaults.object(forKey: Keys.autoFullScreenPlayback) as? Bool ?? false
         disclaimerAccepted = defaults.bool(forKey: Keys.disclaimerAccepted)
         isFirstLaunchDisclaimer = !disclaimerAccepted
@@ -382,6 +386,11 @@ final class AppStore: ObservableObject {
         defaults.set(enabled, forKey: Keys.autoFullScreenPlayback)
     }
 
+    func setUpdateMirror(_ enabled: Bool) {
+        useUpdateMirror = enabled
+        defaults.set(enabled, forKey: Keys.updateMirror)
+    }
+
     func setPreferHighQuality(_ enabled: Bool) {
         preferHighQuality = enabled
         defaults.set(enabled, forKey: Keys.preferHighQuality)
@@ -438,7 +447,7 @@ final class AppStore: ObservableObject {
     func refreshUpdate(manual: Bool) async {
         if manual { updateState = .checking }
         do {
-            guard let info = try await APIClient.checkUpdate() else {
+            guard let info = try await APIClient.checkUpdate(useMirror: useUpdateMirror) else {
                 if manual { updateState = .upToDate("当前已是最新版本 (v\(AppStore.appVersion))") }
                 return
             }
