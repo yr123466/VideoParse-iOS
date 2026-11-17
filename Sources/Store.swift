@@ -546,21 +546,8 @@ final class AppStore: ObservableObject {
                 guard let video = pair.video, !video.isEmpty else { continue }
                 do {
                     let videoFile = try await DownloadManager.tempDownload(video, ext: "mp4")
-                    var done = false
-                    if let image = pair.image, !image.isEmpty,
-                       let imageFile = try? await DownloadManager.tempDownload(image, ext: "jpg") {
-                        do {
-                            try await PhotoSaver.saveLivePhoto(image: imageFile, video: videoFile)
-                            try? FileManager.default.removeItem(at: imageFile)
-                            done = true
-                        } catch {
-                            try? FileManager.default.removeItem(at: imageFile)
-                        }
-                    }
-                    if !done {
-                        // 接口静态图不匹配时，本地从视频取帧合成
-                        try await PhotoSaver.saveVideoAsLivePhoto(videoURL: videoFile)
-                    }
+                    // 统一走本地合成：取帧 + 配对元数据，避免 330
+                    try await LivePhotoMaker.saveLivePhoto(fromVideo: videoFile)
                     try? FileManager.default.removeItem(at: videoFile)
                     saved += 1
                 } catch {
@@ -583,8 +570,8 @@ final class AppStore: ObservableObject {
             do {
                 if let video = liveVideo, !video.isEmpty {
                     let videoFile = try await DownloadManager.tempDownload(video, ext: "mp4")
-                    // 接口返回的静态图常与视频不匹配（保存报 330），改为本地取帧合成
-                    try await PhotoSaver.saveVideoAsLivePhoto(videoURL: videoFile)
+                    // 本地把视频转成带配对元数据的 Live Photo（关键帧取帧 + content.identifier）
+                    try await LivePhotoMaker.saveLivePhoto(fromVideo: videoFile)
                     try? FileManager.default.removeItem(at: videoFile)
                     showToast("已保存实况动图到相册")
                 } else {
